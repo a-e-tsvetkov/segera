@@ -5,44 +5,32 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-
+import java.util.function.Consumer;
+import segeraroot.quotemodel.Quote;
+import segeraroot.quotemodel.Serialization;
 
 @Slf4j
 public class Client {
     private final String host;
     private final int port;
+    private final Consumer<Quote> quoteConsumer;
+    private final Serialization serialization = new Serialization();
 
-    public Client(String host, int port) {
+    public Client(String host, int port, Consumer<Quote> quoteConsumer) {
         this.host = host;
         this.port = port;
+        this.quoteConsumer = quoteConsumer;
     }
 
     public void start() {
-        awaitMessageLoop();
-    }
-
-    private void awaitMessageLoop() {
         try {
-            log.info("Start server: host={} port={}", host, port);
+            log.info("Start client: host={} port={}", host, port);
             var socket = new Socket(host, port);
             ConnectionHandler connectionHandler = new ConnectionHandler(socket);
             connectionHandler.start();
         } catch (IOException e) {
             log.error("Exception in await loop", e);
         }
-    }
-
-    private void readQuote(DataInputStream stream) throws IOException {
-        byte[] bytes = new byte[3];
-        int length = stream.read(bytes);
-        assert length == 3;
-        String name = new String(bytes, StandardCharsets.US_ASCII);
-        long time = stream.readLong();
-        long volume = stream.readLong();
-        long price = stream.readLong();
-
-        log.info("new quote: {} {} {} {}", name, time, volume, price);
     }
 
     private class ConnectionHandler {
@@ -57,9 +45,9 @@ public class Client {
         }
 
         public void start() {
-            Thread writeThread = new Thread(this::readQuotesLoop);
+            Thread thread = new Thread(this::readQuotesLoop);
             running = true;
-            writeThread.start();
+            thread.start();
         }
 
         public void stop() {
@@ -72,13 +60,24 @@ public class Client {
         }
 
         private void readQuotesLoop() {
-            try {
                 while (running) {
-                    readQuote(outputStream);
+                    Quote quote;
+                    try {
+                        quote = serialization.readQuote(outputStream);
+                    } catch (IOException e) {
+                        log.error("Exception in read loop", e);
+                        stop();
+                        continue;
+                    }
+                    try {
+                        quoteConsumer.accept(quote);
+                    } catch (RuntimeException e) {
+                        log.error("Failed to process quote: " + quote, e);
+                    } catch (Throwable e) {
+                        log.error("ERROR DURING PROCESSING: " + quote, e);
+                        stop();
+                    }
                 }
-            } catch (IOException e) {
-                log.error("Exception in write loop", e);
-            }
         }
     }
 }

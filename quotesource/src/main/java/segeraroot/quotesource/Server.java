@@ -1,20 +1,23 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.quotemodel.Quote;
+import segeraroot.quotemodel.Serialization;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @Slf4j
 public class Server {
     private final int port;
+    private final List<ConnectionHandler> connections = new ArrayList<>();
+    private final Object connectionListLock = new Object();
+    private final Serialization serialization = new Serialization();
 
     public Server(int port) {
         this.port = port;
@@ -26,6 +29,16 @@ public class Server {
         mainThread.start();
     }
 
+    public void acceptQuote(Quote quote) {
+        List<ConnectionHandler> list;
+        synchronized (connectionListLock) {
+            list = new ArrayList<>(connections);
+        }
+        for (var connection : list) {
+            connection.write(quote);
+        }
+    }
+
     private void awaitConnectionsLoop() {
         try {
             log.info("Start server: port={}", port);
@@ -33,28 +46,24 @@ public class Server {
             while (true) {
                 Socket connection = serverSocket.accept();
                 log.debug("Connection accepted: {}", connection.getRemoteSocketAddress());
-                startConnectionThread(connection);
+                handleNewConnection(connection);
             }
         } catch (IOException e) {
             log.error("Exception in await loop", e);
         }
     }
 
-    private void startConnectionThread(Socket connection) throws IOException {
+    private void handleNewConnection(Socket connection) throws IOException {
         ConnectionHandler connectionHandler = new ConnectionHandler(connection);
         connectionHandler.start();
+        synchronized (connectionListLock) {
+            connections.add(connectionHandler);
+        }
     }
 
-    private void writeQuote(DataOutputStream stream) throws IOException {
-        stream.write("ABC".getBytes(StandardCharsets.US_ASCII));
-        stream.writeLong(Instant.now().toEpochMilli());
-        stream.writeLong(100);//volume
-        stream.writeLong(6_00100);//price
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+    private void handleCloseConnection(ConnectionHandler connectionHandler) {
+        synchronized (connectionListLock) {
+            connections.remove(connectionHandler);
         }
     }
 
@@ -62,8 +71,7 @@ public class Server {
 
         private final Socket connection;
         private final DataOutputStream outputStream;
-        private Thread writeThread;
-        private volatile boolean running;
+        private final Object writeLock = new Object();
 
         public ConnectionHandler(Socket connection) throws IOException {
             this.connection = connection;
@@ -71,32 +79,26 @@ public class Server {
         }
 
         public void start() {
-            writeThread = new Thread(this::writeQuotesLoop);
-            running = true;
-            writeThread.start();
-
         }
 
         public void stop() {
-            log.info("Close connection: {}", connection.getRemoteSocketAddress());
-            running = false;
+            handleCloseConnection(this);
             try {
                 connection.close();
             } catch (IOException e) {
-                log.error("Fail to close connection", e);
+                log.error("Error while closing socket: {}", e.getMessage());
             }
         }
 
-        private void writeQuotesLoop() {
-            try {
-                while (running) {
-                    writeQuote(outputStream);
+        public void write(Quote quote) {
+            synchronized (writeLock) {
+                try {
+                    serialization.write(quote, this.outputStream);
+                    this.outputStream.flush();
+                } catch (IOException e) {
+                    log.error("Unable to write to socket: {}", e.getMessage());
+                    stop();
                 }
-            } catch (SocketException e) {
-                log.info("Connection closed: {}", e.getMessage());
-                stop();
-            } catch (IOException e) {
-                log.error("Exception in write loop", e);
             }
         }
     }
