@@ -1,25 +1,25 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.quotemodel.ConnectionHandlerBase;
+import segeraroot.quotemodel.MessageWrapper;
+import segeraroot.quotemodel.QuoteConnectionCallback;
+import segeraroot.quotemodel.Serialization;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.function.Consumer;
-import segeraroot.quotemodel.Quote;
-import segeraroot.quotemodel.Serialization;
 
 @Slf4j
 public class Client {
     private final String host;
     private final int port;
-    private final Consumer<Quote> quoteConsumer;
+    private final QuoteConnectionCallback callback;
     private final Serialization serialization = new Serialization();
 
-    public Client(String host, int port, Consumer<Quote> quoteConsumer) {
+    public Client(String host, int port, QuoteConnectionCallback callback) {
         this.host = host;
         this.port = port;
-        this.quoteConsumer = quoteConsumer;
+        this.callback = callback;
     }
 
     public void start() {
@@ -28,56 +28,39 @@ public class Client {
             var socket = new Socket(host, port);
             ConnectionHandler connectionHandler = new ConnectionHandler(socket);
             connectionHandler.start();
+            callback.handleNewConnection(connectionHandler);
         } catch (IOException e) {
             log.error("Exception in await loop", e);
         }
     }
 
-    private class ConnectionHandler {
-
-        private final Socket connection;
-        private final DataInputStream outputStream;
-        private volatile boolean running;
-
+    private class ConnectionHandler extends ConnectionHandlerBase {
         public ConnectionHandler(Socket connection) throws IOException {
-            this.connection = connection;
-            this.outputStream = new DataInputStream(connection.getInputStream());
+            super(connection);
         }
 
+        @Override
         public void start() {
-            Thread thread = new Thread(this::readQuotesLoop);
-            running = true;
-            thread.start();
+            readHeader();
+            super.start();
         }
 
-        public void stop() {
-            running = false;
-            try {
-                connection.close();
-            } catch (IOException e) {
-                log.error("Failed to close connection", e);
-            }
+        @Override
+        protected void handleCloseConnection() {
+
         }
 
-        private void readQuotesLoop() {
-                while (running) {
-                    Quote quote;
-                    try {
-                        quote = serialization.readQuote(outputStream);
-                    } catch (IOException e) {
-                        log.error("Exception in read loop", e);
-                        stop();
-                        continue;
-                    }
-                    try {
-                        quoteConsumer.accept(quote);
-                    } catch (RuntimeException e) {
-                        log.error("Failed to process quote: " + quote, e);
-                    } catch (Throwable e) {
-                        log.error("ERROR DURING PROCESSING: " + quote, e);
-                        stop();
-                    }
-                }
+
+        @Override
+        protected void onMessage(MessageWrapper<?> messageWrapper) {
+            callback.handleMessageConnection(this, messageWrapper);
         }
+
+        @Override
+        protected Serialization getSerialization() {
+            return serialization;
+        }
+
+
     }
 }

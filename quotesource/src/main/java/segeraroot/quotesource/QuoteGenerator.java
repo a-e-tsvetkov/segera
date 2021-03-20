@@ -1,18 +1,18 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.Quote;
+import segeraroot.quotemodel.messages.Quote;
 
 import java.time.Instant;
 import java.util.function.Consumer;
 
 @Slf4j
-public class QuteGenerator {
+public class QuoteGenerator {
     private final String symbol;
     private final Consumer<Quote> quoteConsumer;
     private volatile boolean running;
 
-    public QuteGenerator(String symbol, Consumer<Quote> quoteConsumer) {
+    public QuoteGenerator(String symbol, Consumer<Quote> quoteConsumer) {
         this.symbol = symbol;
         this.quoteConsumer = quoteConsumer;
     }
