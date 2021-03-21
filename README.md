@@ -10,3 +10,4 @@ I want to create simple application and show how it can be done in incremental s
 * V1 - Initial version
 * V2 - Separate code into infrastructure and business layers.
 * V3 - Extend protocol. Introduce multiple message types and protocol version.
+* V3 - Switch server to NIO.
