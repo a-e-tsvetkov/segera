@@ -198,7 +198,7 @@ public class Server {
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
 
-                buffer.putInt(Serialization.VERSION);
+                buffer.putInt(Protocol.VERSION);
                 buffer.flip();
                 socketChannel.write(buffer);
                 assert buffer.remaining() == 0;

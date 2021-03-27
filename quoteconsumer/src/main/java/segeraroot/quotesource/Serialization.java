@@ -1,5 +1,6 @@
-package segeraroot.quotemodel;
+package segeraroot.quotesource;
 
+import segeraroot.quotemodel.*;
 import segeraroot.quotemodel.messages.Quote;
 import segeraroot.quotemodel.messages.Subscribe;
 import segeraroot.quotemodel.messages.Unsubscribe;
@@ -11,16 +12,15 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 public class Serialization {
-    public static final int VERSION = 1;
 
     public void writeHeader(DataOutputStream stream) throws IOException {
-        stream.writeInt(VERSION);
+        stream.writeInt(Protocol.VERSION);
     }
 
     public int readHeader(DataInputStream stream) throws IOException, QuoteProtocolWrongVersionException {
         int version = stream.readInt();
-        if (version != VERSION) {
-            throw new QuoteProtocolWrongVersionException(VERSION, version);
+        if (version != Protocol.VERSION) {
+            throw new QuoteProtocolWrongVersionException(Protocol.VERSION, version);
         }
         return version;
     }

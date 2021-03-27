@@ -19,8 +19,8 @@ public class PriceTerminal {
         register(MessageType.QUOTE, this::acceptQuote);
     }
 
+    @SuppressWarnings("unchecked")
     private <T> void register(MessageType messageType, Consumer<T> consumer) {
-        //noinspection unchecked
         map.put(messageType, message -> consumer.accept((T) message));
     }
 
