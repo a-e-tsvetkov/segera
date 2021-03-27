@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 public class Serialization {
-    private static final int VERSION = 1;
+    public static final int VERSION = 1;
 
     public void writeHeader(DataOutputStream stream) throws IOException {
         stream.writeInt(VERSION);

@@ -28,6 +28,7 @@ public class QuoteGenerator {
     }
 
     private void generatorLoop() {
+        log.info("Start: {}", symbol);
         while (running) {
             Quote quote = Quote.builder()
                     .date(Instant.now())
@@ -52,5 +53,6 @@ public class QuoteGenerator {
                 e.printStackTrace();
             }
         }
+        log.info("Stop: {}", symbol);
     }
 }

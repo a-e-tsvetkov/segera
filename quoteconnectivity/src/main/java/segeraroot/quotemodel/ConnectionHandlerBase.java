@@ -42,6 +42,7 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
 
     @Override
     public final void write(MessageWrapper<Message> messageWrapper) {
+        log.trace("Writing meassage: {} {}", socket.getRemoteSocketAddress(), messageWrapper.getType());
         synchronized (writeLock) {
             try {
                 getSerialization().writeMessage(messageWrapper, this.outputStream);
@@ -49,6 +50,7 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
             } catch (IOException e) {
                 log.error("Unable to write to socket: {}", e.getMessage());
                 stop();
+                throw new RuntimeException("Unable to write", e);
             }
         }
     }
@@ -87,6 +89,7 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
                     e.getExpectedVersion(),
                     e.getActualVersion());
             stop();
+            throw new RuntimeException(e);
         }
     }
 

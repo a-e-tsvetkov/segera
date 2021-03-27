@@ -58,6 +58,7 @@ public class PriceTerminal {
     }
 
     private void subscribe(QuoteConnection quoteConnection, String symbol) {
+        log.debug("subscribe: {} {}", quoteConnection.getName(), symbol);
         quoteConnection.write(MessageWrapper.builder()
                 .type(MessageType.SUBSCRIBE)
                 .value(Subscribe.builder()
