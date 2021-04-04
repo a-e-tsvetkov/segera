@@ -1,9 +1,9 @@
 package segeraroot.quotemodel;
 
-public interface QuoteConnectionCallback {
-    void handleCloseConnection(QuoteConnection connection);
+public interface QuoteConnectionCallback<T> {
+    void handleCloseConnection(QuoteConnection<T> connection);
 
-    void handleNewConnection(QuoteConnection connection);
+    void handleNewConnection(QuoteConnection<T> connection);
 
-    void handleMessageConnection(QuoteConnection connection, MessageWrapper<?> messageWrapper);
+    void handleMessageConnection(QuoteConnection<T> connection, T messageWrapper);
 }

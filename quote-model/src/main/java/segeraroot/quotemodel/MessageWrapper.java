@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class MessageWrapper<T extends Message> {
+public class MessageWrapper {
     MessageType type;
-    T value;
+    Message value;
 }

@@ -6,23 +6,23 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Builder
-public class SimpleQuoteConnectionCallback implements QuoteConnectionCallback {
-    private final Consumer<QuoteConnection> closeHandler;
-    private final Consumer<QuoteConnection> newHandler;
-    private final BiConsumer<QuoteConnection, MessageWrapper<?>> messageHandler;
+public class SimpleQuoteConnectionCallback<T> implements QuoteConnectionCallback<T> {
+    private final Consumer<QuoteConnection<T>> closeHandler;
+    private final Consumer<QuoteConnection<T>> newHandler;
+    private final BiConsumer<QuoteConnection<T>, T> messageHandler;
 
     @Override
-    public void handleCloseConnection(QuoteConnection connection) {
+    public void handleCloseConnection(QuoteConnection<T> connection) {
         closeHandler.accept(connection);
     }
 
     @Override
-    public void handleNewConnection(QuoteConnection connection) {
+    public void handleNewConnection(QuoteConnection<T> connection) {
         newHandler.accept(connection);
     }
 
     @Override
-    public void handleMessageConnection(QuoteConnection connection, MessageWrapper<?> messageWrapper) {
+    public void handleMessageConnection(QuoteConnection<T> connection, T messageWrapper) {
         messageHandler.accept(connection, messageWrapper);
     }
 }

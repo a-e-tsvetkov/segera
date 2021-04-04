@@ -15,11 +15,11 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Slf4j
 public class QuoteDispatcher {
-    private final List<QuoteConnection> connections = new ArrayList<>();
+    private final List<QuoteConnection<MessageWrapper>> connections = new ArrayList<>();
     private final Object connectionListLock = new Object();
 
     public void acceptQuote(Quote quote) {
-        List<QuoteConnection> list;
+        List<QuoteConnection<MessageWrapper>> list;
         synchronized (connectionListLock) {
             list = new ArrayList<>(connections);
         }
@@ -34,20 +34,20 @@ public class QuoteDispatcher {
         }
     }
 
-    private void onNewConnection(QuoteConnection quoteConnection) {
+    private void onNewConnection(QuoteConnection<MessageWrapper> quoteConnection) {
         quoteConnection.set(new ConnectionContext(quoteConnection.getName()));
         synchronized (connectionListLock) {
             connections.add(quoteConnection);
         }
     }
 
-    private void onCloseConnection(QuoteConnection connectionHandler) {
+    private void onCloseConnection(QuoteConnection<MessageWrapper> connectionHandler) {
         synchronized (connectionListLock) {
             connections.remove(connectionHandler);
         }
     }
 
-    private void onMessage(QuoteConnection connection, MessageWrapper<?> messageWrapper) {
+    private void onMessage(QuoteConnection<MessageWrapper> connection, MessageWrapper messageWrapper) {
         var context = getConnectionContext(connection);
         switch (messageWrapper.getType()) {
             case SUBSCRIBE:
@@ -62,7 +62,7 @@ public class QuoteDispatcher {
         }
     }
 
-    private ConnectionContext getConnectionContext(QuoteConnection connection) {
+    private ConnectionContext getConnectionContext(QuoteConnection<MessageWrapper> connection) {
         return (ConnectionContext) connection.get();
     }
 
@@ -76,8 +76,8 @@ public class QuoteDispatcher {
         context.unsubscribe(value.getSymbol());
     }
 
-    public QuoteConnectionCallback getCallback() {
-        return SimpleQuoteConnectionCallback.builder()
+    public QuoteConnectionCallback<MessageWrapper> getCallback() {
+        return SimpleQuoteConnectionCallback.<MessageWrapper>builder()
                 .newHandler(this::onNewConnection)
                 .closeHandler(this::onCloseConnection)
                 .messageHandler(this::onMessage)

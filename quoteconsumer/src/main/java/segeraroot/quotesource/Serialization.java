@@ -25,7 +25,7 @@ public class Serialization {
         return version;
     }
 
-    public void writeMessage(MessageWrapper<?> messageWrapper, DataOutputStream stream) throws IOException {
+    public void writeMessage(MessageWrapper messageWrapper, DataOutputStream stream) throws IOException {
         stream.writeByte(messageWrapper.getType().getCode());
         switch (messageWrapper.getType()) {
             case SUBSCRIBE:
@@ -38,13 +38,12 @@ public class Serialization {
                 writeQuote((Quote) messageWrapper.getValue(), stream);
                 break;
             case SYMBOLS_REQ:
-                break;
             case SYMBOLS_RES:
                 break;
         }
     }
 
-    public MessageWrapper<?> readMessage(DataInputStream stream) throws IOException {
+    public MessageWrapper readMessage(DataInputStream stream) throws IOException {
         byte typeByte = stream.readByte();
         MessageType messageType = MessageType.valueOf(typeByte);
         Message value;

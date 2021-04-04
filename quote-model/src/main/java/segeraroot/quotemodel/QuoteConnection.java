@@ -1,7 +1,7 @@
 package segeraroot.quotemodel;
 
-public interface QuoteConnection {
-    void write(MessageWrapper<Message> messageWrapper);
+public interface QuoteConnection<T> {
+    void write(T messageWrapper);
 
     Object get();
 

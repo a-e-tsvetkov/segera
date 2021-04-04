@@ -1,10 +1,8 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.*;
-import segeraroot.quotemodel.messages.Quote;
-import segeraroot.quotemodel.messages.Subscribe;
-import segeraroot.quotemodel.messages.Unsubscribe;
+import segeraroot.quotemodel.Protocol;
+import segeraroot.quotemodel.QuoteConnectionCallback;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -13,8 +11,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -23,11 +19,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class Server {
     private final int port;
-    private final QuoteConnectionCallback connectionCallback;
+    private final QuoteConnectionCallback<ByteBuffer> connectionCallback;
     private Selector selector;
     private ByteBuffer buffer;
 
-    public Server(int port, QuoteConnectionCallback connectionCallback) {
+    public Server(int port, QuoteConnectionCallback<ByteBuffer> connectionCallback) {
         this.port = port;
         this.connectionCallback = connectionCallback;
     }
@@ -95,14 +91,11 @@ public class Server {
         connectionCallback.handleNewConnection(handler);
     }
 
-    private class ConnectionHandler implements QuoteConnection {
+    private class ConnectionHandler extends QuoteConnectionBase<ByteBuffer> {
 
         private final SelectionKey key;
-        private ReadingState readingState = ReadingState.START;
-        private MessageType messageType;
-        private ByteBuffer messageBodyBuffer;
-        private final Queue<MessageWrapper<Message>> writeQueue = new ConcurrentLinkedQueue<>();
-        private Object context;
+
+        private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
         private volatile boolean headerIsInBuffer = false;
 
         public ConnectionHandler(SelectionKey key) {
@@ -134,61 +127,9 @@ public class Server {
                 return;
             }
 
-            processMesage();
+            connectionCallback.handleMessageConnection(this, buffer);
         }
 
-        private void processMesage() {
-            while (buffer.hasRemaining()) {
-                switch (readingState) {
-                    case START:
-                        messageType = MessageType.valueOf(buffer.get());
-                        readingState = ReadingState.IN_MESSAGE;
-                        messageBodyBuffer = ByteBuffer.allocate(messageType.getSize());
-                        break;
-                    case IN_MESSAGE:
-                        ByteBufferUtil.copy(buffer, messageBodyBuffer);
-                        if (messageBodyBuffer.remaining() == 0) {
-                            messageBodyBuffer.flip();
-                            processMessage(messageType, messageBodyBuffer);
-                            readingState = ReadingState.START;
-                            messageType = null;
-                            messageBodyBuffer = null;
-                        }
-                        break;
-                }
-            }
-        }
-
-        private void processMessage(MessageType messageType, ByteBuffer messageBodyBuffer) {
-            Message value;
-            switch (messageType) {
-                case SUBSCRIBE: {
-                    byte[] bytes = new byte[Quote.SYMBOL_LENGTH];
-                    messageBodyBuffer.get(bytes);
-                    value = Subscribe.builder()
-                            .symbol(new String(bytes, StandardCharsets.US_ASCII))
-                            .build();
-                    break;
-                }
-                case UNSUBSCRIBE: {
-                    byte[] bytes = new byte[Quote.SYMBOL_LENGTH];
-                    messageBodyBuffer.get(bytes);
-                    value = Unsubscribe.builder()
-                            .symbol(new String(bytes, StandardCharsets.US_ASCII))
-                            .build();
-                    break;
-                }
-                case QUOTE:
-                case SYMBOLS_REQ:
-                case SYMBOLS_RES:
-                default:
-                    throw new RuntimeException("Unexpected message type: " + messageType);
-            }
-            connectionCallback.handleMessageConnection(this, MessageWrapper.builder()
-                    .type(messageType)
-                    .value(value)
-                    .build());
-        }
 
         public void doWrite(SelectionKey key) throws IOException {
             var socketChannel = (SocketChannel) key.channel();
@@ -204,60 +145,22 @@ public class Server {
                 assert buffer.remaining() == 0;
                 headerIsInBuffer = true;
             }
-            MessageWrapper<Message> messageWrapper;
+            ByteBuffer messageWrapper;
             while ((messageWrapper = writeQueue.poll()) != null) {
-                log.trace("Writing message: {} {}", socketChannel.getRemoteAddress(), messageWrapper.getType());
+                log.trace("Writing message: {}", socketChannel.getRemoteAddress());
 
-                buffer.position(0);
-                buffer.limit(buffer.capacity());
-                buffer.put(messageWrapper.getType().getCode());
-                switch (messageWrapper.getType()) {
-                    case QUOTE:
-                        doWriteQuote(buffer, (Quote) messageWrapper.getValue());
-                        break;
-                    case SUBSCRIBE:
-                    case UNSUBSCRIBE:
-                    case SYMBOLS_REQ:
-                    case SYMBOLS_RES:
-                    default:
-                        throw new RuntimeException("Unexpected type: " + messageWrapper.getType());
-                }
-                buffer.flip();
-                socketChannel.write(buffer);
+                socketChannel.write(messageWrapper);
                 assert buffer.remaining() == 0;
             }
             key.interestOps(SelectionKey.OP_READ);
         }
 
-        private void doWriteQuote(ByteBuffer buffer, Quote quote) {
-            writeSymbol(buffer, quote.getSymbol());
-            buffer.putLong(Instant.now().toEpochMilli());
-            buffer.putLong(quote.getVolume());
-            buffer.putLong(quote.getPrice());
-        }
-
-        private void writeSymbol(ByteBuffer buffer, String symbol) {
-            assert symbol.length() == Quote.SYMBOL_LENGTH;
-            buffer.put(symbol.getBytes(StandardCharsets.US_ASCII));
-        }
-
         @Override
-        public void write(MessageWrapper<Message> messageWrapper) {
-            log.debug("Add mesage to queue: {}", messageWrapper.getType());
+        public void write(ByteBuffer messageWrapper) {
+            log.debug("Add message to queue");
             writeQueue.add(messageWrapper);
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();
-
-        }
-
-        @Override
-        public Object get() {
-            return context;
-        }
-
-        @Override
-        public void set(Object context) {
-            this.context = context;
         }
 
         @Override
@@ -269,10 +172,5 @@ public class Server {
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();
         }
-    }
-
-    private enum ReadingState {
-        START,
-        IN_MESSAGE
     }
 }

@@ -2,6 +2,7 @@ package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.quotemodel.MessageWrapper;
+import segeraroot.quotemodel.QuoteConnection;
 import segeraroot.quotemodel.QuoteConnectionCallback;
 
 import java.io.IOException;
@@ -11,10 +12,10 @@ import java.net.Socket;
 public class Client {
     private final String host;
     private final int port;
-    private final QuoteConnectionCallback callback;
+    private final QuoteConnectionCallback<MessageWrapper> callback;
     private final Serialization serialization = new Serialization();
 
-    public Client(String host, int port, QuoteConnectionCallback callback) {
+    public Client(String host, int port, QuoteConnectionCallback<MessageWrapper> callback) {
         this.host = host;
         this.port = port;
         this.callback = callback;
@@ -32,7 +33,7 @@ public class Client {
         }
     }
 
-    private class ConnectionHandler extends ConnectionHandlerBase {
+    private class ConnectionHandler extends ConnectionHandlerBase implements QuoteConnection<MessageWrapper> {
         public ConnectionHandler(Socket connection) throws IOException {
             super(connection);
         }
@@ -50,7 +51,7 @@ public class Client {
 
 
         @Override
-        protected void onMessage(MessageWrapper<?> messageWrapper) {
+        protected void onMessage(MessageWrapper messageWrapper) {
             callback.handleMessageConnection(this, messageWrapper);
         }
 
@@ -58,7 +59,5 @@ public class Client {
         protected Serialization getSerialization() {
             return serialization;
         }
-
-
     }
 }

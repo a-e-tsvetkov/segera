@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 @Slf4j
 public class PriceTerminal {
     private final Map<MessageType, Consumer<Message>> map = new HashMap<>();
-    private String[] symbols;
+    private final String[] symbols;
 
     public PriceTerminal(String... symbols) {
         this.symbols = symbols;
@@ -25,7 +25,7 @@ public class PriceTerminal {
     }
 
 
-    private void acceptMessage(QuoteConnection connection, MessageWrapper<?> messageWrapper) {
+    private void acceptMessage(QuoteConnection<MessageWrapper> connection, MessageWrapper messageWrapper) {
         Consumer<Message> consumer = map.get(messageWrapper.getType());
         if (consumer == null) {
             acceptDefault(messageWrapper.getValue());
@@ -42,8 +42,8 @@ public class PriceTerminal {
         log.info("Quote received: {}", quote);
     }
 
-    public QuoteConnectionCallback getCallback() {
-        return SimpleQuoteConnectionCallback.builder()
+    public QuoteConnectionCallback<MessageWrapper> getCallback() {
+        return SimpleQuoteConnectionCallback.<MessageWrapper>builder()
                 .newHandler(this::onNewConnection)
                 .closeHandler(connection -> {
                 })
@@ -51,13 +51,13 @@ public class PriceTerminal {
                 .build();
     }
 
-    private void onNewConnection(QuoteConnection quoteConnection) {
+    private void onNewConnection(QuoteConnection<MessageWrapper> quoteConnection) {
         for (String symbol : symbols) {
             subscribe(quoteConnection, symbol);
         }
     }
 
-    private void subscribe(QuoteConnection quoteConnection, String symbol) {
+    private void subscribe(QuoteConnection<MessageWrapper> quoteConnection, String symbol) {
         log.debug("subscribe: {} {}", quoteConnection.getName(), symbol);
         quoteConnection.write(MessageWrapper.builder()
                 .type(MessageType.SUBSCRIBE)

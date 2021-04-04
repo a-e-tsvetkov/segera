@@ -1,9 +1,7 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.Message;
 import segeraroot.quotemodel.MessageWrapper;
-import segeraroot.quotemodel.QuoteConnection;
 import segeraroot.quotemodel.QuoteProtocolWrongVersionException;
 
 import java.io.DataInputStream;
@@ -12,7 +10,7 @@ import java.io.IOException;
 import java.net.Socket;
 
 @Slf4j
-public abstract class ConnectionHandlerBase implements QuoteConnection {
+public abstract class ConnectionHandlerBase {
     private final Socket socket;
     private final DataOutputStream outputStream;
     private final DataInputStream inputStream;
@@ -44,9 +42,8 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
 
     protected abstract void handleCloseConnection();
 
-    @Override
-    public final void write(MessageWrapper<Message> messageWrapper) {
-        log.trace("Writing meassage: {} {}", socket.getRemoteSocketAddress(), messageWrapper.getType());
+    public final void write(MessageWrapper messageWrapper) {
+        log.trace("Writing message: {} {}", socket.getRemoteSocketAddress(), messageWrapper.getType());
         synchronized (writeLock) {
             try {
                 getSerialization().writeMessage(messageWrapper, this.outputStream);
@@ -59,13 +56,13 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
         }
     }
 
-    protected abstract void onMessage(MessageWrapper<?> messageWrapper);
+    protected abstract void onMessage(MessageWrapper messageWrapper);
 
     protected abstract Serialization getSerialization();
 
     protected final void readQuotesLoop() {
         while (running) {
-            MessageWrapper<?> messageWrapper = null;
+            MessageWrapper messageWrapper = null;
             try {
                 messageWrapper = getSerialization().readMessage(inputStream);
                 onMessage(messageWrapper);
@@ -106,17 +103,14 @@ public abstract class ConnectionHandlerBase implements QuoteConnection {
         }
     }
 
-    @Override
     public final String getName() {
         return socket.getRemoteSocketAddress().toString();
     }
 
-    @Override
     public final Object get() {
         return context;
     }
 
-    @Override
     public final void set(Object context) {
         assert this.context == null;
         this.context = context;
