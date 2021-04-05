@@ -1,4 +1,4 @@
-package segeraroot.quotemodel;
+package segeraroot.connectivity;
 
 public interface QuoteConnection<T> {
     void write(T messageWrapper);

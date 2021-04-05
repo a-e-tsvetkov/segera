@@ -1,8 +1,6 @@
-package segeraroot.quotesource;
+package segeraroot.quoteconsumer;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.MessageWrapper;
-import segeraroot.quotemodel.QuoteProtocolWrongVersionException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

@@ -1,9 +1,6 @@
-package segeraroot.quotesource;
+package segeraroot.quoteconsumer;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.MessageWrapper;
-import segeraroot.quotemodel.QuoteConnection;
-import segeraroot.quotemodel.QuoteConnectionCallback;
 
 import java.io.IOException;
 import java.net.Socket;

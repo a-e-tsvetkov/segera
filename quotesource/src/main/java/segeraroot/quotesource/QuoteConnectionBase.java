@@ -1,6 +1,7 @@
 package segeraroot.quotesource;
 
-import segeraroot.quotemodel.QuoteConnection;
+
+import segeraroot.connectivity.QuoteConnection;
 
 public abstract class QuoteConnectionBase<T> implements QuoteConnection<T> {
     private Object context;

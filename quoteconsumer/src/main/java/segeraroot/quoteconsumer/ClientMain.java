@@ -1,4 +1,4 @@
-package segeraroot.quotesource;
+package segeraroot.quoteconsumer;
 
 public class ClientMain {
     public static void main(String[] args) {

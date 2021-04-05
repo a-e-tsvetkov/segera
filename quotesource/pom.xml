@@ -31,5 +31,10 @@
             <artifactId>quote-model</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>segera</groupId>
+            <artifactId>connectivity</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

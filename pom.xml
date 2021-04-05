@@ -44,6 +44,7 @@
         <module>quotesource</module>
         <module>quoteconsumer</module>
         <module>quote-model</module>
+        <module>connectivity</module>
     </modules>
 
 

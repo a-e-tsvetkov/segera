@@ -1,9 +1,8 @@
-package segeraroot.quotesource;
+package segeraroot.quoteconsumer;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.*;
-import segeraroot.quotemodel.messages.Quote;
-import segeraroot.quotemodel.messages.Subscribe;
+import segeraroot.quoteconsumer.messages.Quote;
+import segeraroot.quoteconsumer.messages.Subscribe;
 
 import java.util.HashMap;
 import java.util.Map;

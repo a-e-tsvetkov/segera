@@ -1,8 +1,8 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.quotemodel.Protocol;
-import segeraroot.quotemodel.QuoteConnectionCallback;
+import segeraroot.connectivity.Protocol;
+import segeraroot.connectivity.QuoteConnectionCallback;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

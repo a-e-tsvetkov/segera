@@ -1,9 +1,9 @@
-package segeraroot.quotesource;
+package segeraroot.quoteconsumer;
 
-import segeraroot.quotemodel.*;
-import segeraroot.quotemodel.messages.Quote;
-import segeraroot.quotemodel.messages.Subscribe;
-import segeraroot.quotemodel.messages.Unsubscribe;
+
+import segeraroot.quoteconsumer.messages.Quote;
+import segeraroot.quoteconsumer.messages.Subscribe;
+import segeraroot.quoteconsumer.messages.Unsubscribe;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;

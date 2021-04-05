@@ -1,4 +1,4 @@
-package segeraroot.quotemodel;
+package segeraroot.quoteconsumer;
 
 import lombok.Builder;
 

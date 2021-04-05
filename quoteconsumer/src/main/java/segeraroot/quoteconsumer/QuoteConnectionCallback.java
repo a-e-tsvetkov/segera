@@ -1,4 +1,5 @@
-package segeraroot.quotemodel;
+package segeraroot.quoteconsumer;
+
 
 public interface QuoteConnectionCallback<T> {
     void handleCloseConnection(QuoteConnection<T> connection);
