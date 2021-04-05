@@ -14,6 +14,9 @@
         <maven.compiler.target>10</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <scala.version>2.12.4</scala.version>
+        <maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
+
         <slf4j.version>1.7.25</slf4j.version>
     </properties>
 
@@ -45,6 +48,8 @@
         <module>quoteconsumer</module>
         <module>quote-model</module>
         <module>connectivity</module>
+        <module>model-generator</module>
+        <module>model-generator-ast</module>
     </modules>
 
 
