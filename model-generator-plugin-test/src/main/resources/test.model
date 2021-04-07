@@ -1,0 +1,7 @@
+
+
+message TestMessage{
+   field1: long,
+   field2: int,
+   field3: seq[byte, 6]
+}

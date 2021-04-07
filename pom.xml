@@ -48,8 +48,11 @@
         <module>quoteconsumer</module>
         <module>quote-model</module>
         <module>connectivity</module>
-        <module>model-generator</module>
+        <module>model-generator-parser</module>
         <module>model-generator-ast</module>
+        <module>model-generator-dto</module>
+        <module>model-generator-plugin</module>
+        <module>model-generator-plugin-test</module>
     </modules>
 
 
