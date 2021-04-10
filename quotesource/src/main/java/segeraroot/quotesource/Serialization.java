@@ -2,44 +2,40 @@ package segeraroot.quotesource;
 
 import segeraroot.quotemodel.Message;
 import segeraroot.quotemodel.MessageType;
-import segeraroot.quotemodel.MessageWrapper;
+import segeraroot.quotemodel.QuoteConstant;
 import segeraroot.quotemodel.messages.Quote;
 import segeraroot.quotemodel.messages.Subscribe;
 import segeraroot.quotemodel.messages.Unsubscribe;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 
 public class Serialization {
-    public ByteBuffer serialize(MessageWrapper messageWrapper) {
+    public ByteBuffer serialize(Message message) {
         ByteBuffer buffer = ByteBuffer.allocate(1024);
-        buffer.put(messageWrapper.getType().getCode());
-        switch (messageWrapper.getType()) {
-            case QUOTE:
-                doWriteQuote(buffer, (Quote) messageWrapper.getValue());
+        buffer.put((byte) message.messageType().ordinal());
+        switch (message.messageType()) {
+            case Quote:
+                doWriteQuote(buffer, (Quote) message);
                 break;
-            case SUBSCRIBE:
-            case UNSUBSCRIBE:
-            case SYMBOLS_REQ:
-            case SYMBOLS_RES:
+            case Subscribe:
+            case Unsubscribe:
             default:
-                throw new RuntimeException("Unexpected type: " + messageWrapper.getType());
+                throw new RuntimeException("Unexpected type: " + message.messageType());
         }
         buffer.flip();
         return buffer;
     }
 
     private void doWriteQuote(ByteBuffer buffer, Quote quote) {
-        writeSymbol(buffer, quote.getSymbol());
-        buffer.putLong(Instant.now().toEpochMilli());
-        buffer.putLong(quote.getVolume());
-        buffer.putLong(quote.getPrice());
+        writeSymbol(buffer, quote.symbol());
+        buffer.putLong(quote.volume());
+        buffer.putLong(quote.price());
+        buffer.putLong(quote.date());
     }
 
-    private void writeSymbol(ByteBuffer buffer, String symbol) {
-        assert symbol.length() == Quote.SYMBOL_LENGTH;
-        buffer.put(symbol.getBytes(StandardCharsets.US_ASCII));
+    private void writeSymbol(ByteBuffer buffer, byte[] symbol) {
+        assert symbol.length == QuoteConstant.SYMBOL_LENGTH;
+        buffer.put(symbol);
     }
 
     //*******************************************************
@@ -48,13 +44,13 @@ public class Serialization {
     private MessageType messageType;
     private ByteBuffer messageBodyBuffer;
 
-    public void onMessage(ByteBuffer buffer, MessageSink<MessageWrapper> messageSink) {
+    public void onMessage(ByteBuffer buffer, MessageSink<Message> messageSink) {
         while (buffer.hasRemaining()) {
             switch (readingState) {
                 case START:
-                    messageType = MessageType.valueOf(buffer.get());
+                    messageType = toType(buffer.get());
                     readingState = ReadingState.IN_MESSAGE;
-                    messageBodyBuffer = ByteBuffer.allocate(messageType.getSize());
+                    messageBodyBuffer = ByteBuffer.allocate(size(messageType));
                     break;
                 case IN_MESSAGE:
                     ByteBufferUtil.copy(buffer, messageBodyBuffer);
@@ -70,37 +66,60 @@ public class Serialization {
         }
     }
 
+    private int size(MessageType messageType) {
+        switch (messageType) {
+            case Subscribe:
+                return 3;
+            case Unsubscribe:
+                return 3;
+            case Quote:
+                return 11;
+            default:
+                throw new RuntimeException("Unexpected message type " + messageType);
+        }
+    }
 
-    private void processMessage(MessageType messageType, ByteBuffer messageBodyBuffer, MessageSink<MessageWrapper> messageSink) {
+    private MessageType toType(byte b) {
+        switch (b) {
+            case 0:
+                return MessageType.Quote;
+            case 1:
+                return MessageType.Subscribe;
+            case 2:
+                return MessageType.Unsubscribe;
+            default:
+                throw new RuntimeException("Unexpected message type " + b);
+        }
+    }
+
+    private void processMessage(
+            MessageType messageType,
+            ByteBuffer messageBodyBuffer,
+            MessageSink<Message> messageSink) {
 
         Message value;
         switch (messageType) {
-            case SUBSCRIBE: {
-                byte[] bytes = new byte[Quote.SYMBOL_LENGTH];
+            case Subscribe: {
+                byte[] bytes = new byte[QuoteConstant.SYMBOL_LENGTH];
                 messageBodyBuffer.get(bytes);
                 value = Subscribe.builder()
-                        .symbol(new String(bytes, StandardCharsets.US_ASCII))
+                        .symbol(bytes)
                         .build();
                 break;
             }
-            case UNSUBSCRIBE: {
-                byte[] bytes = new byte[Quote.SYMBOL_LENGTH];
+            case Unsubscribe: {
+                byte[] bytes = new byte[QuoteConstant.SYMBOL_LENGTH];
                 messageBodyBuffer.get(bytes);
                 value = Unsubscribe.builder()
-                        .symbol(new String(bytes, StandardCharsets.US_ASCII))
+                        .symbol(bytes)
                         .build();
                 break;
             }
-            case QUOTE:
-            case SYMBOLS_REQ:
-            case SYMBOLS_RES:
+            case Quote:
             default:
                 throw new RuntimeException("Unexpected message type: " + messageType);
         }
-        messageSink.send(MessageWrapper.builder()
-                .type(messageType)
-                .value(value)
-                .build());
+        messageSink.send(value);
     }
 
     private enum ReadingState {

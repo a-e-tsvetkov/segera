@@ -37,9 +37,6 @@ public class Serialization {
             case QUOTE:
                 writeQuote((Quote) messageWrapper.getValue(), stream);
                 break;
-            case SYMBOLS_REQ:
-            case SYMBOLS_RES:
-                break;
         }
     }
 
@@ -57,8 +54,6 @@ public class Serialization {
             case QUOTE:
                 value = readQuote(stream);
                 break;
-            case SYMBOLS_REQ:
-            case SYMBOLS_RES:
             default:
                 throw new RuntimeException("impossible");
         }
@@ -105,9 +100,9 @@ public class Serialization {
 
     private Quote readQuote(DataInputStream stream) throws IOException {
         String symbol = readSymbol(stream);
-        long time = stream.readLong();
         long volume = stream.readLong();
         long price = stream.readLong();
+        long time = stream.readLong();
         return Quote.builder()
                 .date(Instant.ofEpochMilli(time))
                 .symbol(symbol)

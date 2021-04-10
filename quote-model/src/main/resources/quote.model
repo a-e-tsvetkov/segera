@@ -1,0 +1,16 @@
+
+
+message Quote {
+   symbol: seq[byte, 3],
+   volume: long,
+   price: long,
+   date: long
+}
+
+message Subscribe {
+   symbol: seq[byte, 3]
+}
+
+message Unsubscribe {
+   symbol: seq[byte, 3]
+}

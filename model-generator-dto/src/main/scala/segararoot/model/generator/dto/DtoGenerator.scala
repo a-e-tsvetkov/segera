@@ -7,14 +7,47 @@ import scala.collection.JavaConverters._
 class DtoGenerator(basePackage: String) {
 
   def generate(ast: AST): java.util.Collection[CompilationUnit] = {
-    ast.messageDef
-      .map(generate)
+    val messageEnum = generateEnum(ast.messageDef)
+    val messageInterface = generateMessageInterface(messageEnum.toTypeRef)
+    val messages = ast.messageDef
+      .map(message => generate(
+        message,
+        basePackage + ".messages",
+        messageEnum,
+        messageInterface
+      ))
+    (messages :+ messageEnum :+ messageInterface)
+      .map { x =>
+        toCompilationUnit(x)
+      }
       .asJavaCollection
   }
 
+  private def toCompilationUnit(enum: TypeBuilder) = {
+    CompilationUnit(enum.packageName, enum.name, enum.toJavaCode)
+  }
 
-  private def generate(message: Message): CompilationUnit = {
-    val dto = ClassBuilder(basePackage, message.name)
+  private def generateMessageInterface(messageEnum: TypeRef) = {
+    val message = InterfaceBuilder(basePackage, "Message")
+    message.appendMethod("messageType", messageEnum)
+    message
+  }
+
+  private def generateEnum(messageDef: Seq[Message]) = {
+    val enum = EnumBuilder(basePackage, "MessageType")
+
+    messageDef.foreach { m =>
+      enum.addValue(m.name)
+    }
+    enum
+  }
+
+  private def generate(message: Message,
+                       messagesBasePackage: String,
+                       messageType: EnumBuilder,
+                       messageInterface: InterfaceBuilder) = {
+    val dto = ClassBuilder(messagesBasePackage, message.name)
+    dto.addImplements(messageInterface.toTypeRef)
 
     val builder = dto.createInnerClass(message.name + "Builder")
 
@@ -24,6 +57,12 @@ class DtoGenerator(basePackage: String) {
     dtoConstructor.visibility = VisibilityPrivate
     dtoConstructor.addParam(BUILDER_PARAM_NAME, builder.toTypeRef)
     val dtoConstructorBody = BodyBuilder()
+
+    val messageTypeMethod = dto.appendMethod("messageType", messageType.toTypeRef)
+    messageTypeMethod.visibility = VisibilityPublic
+    messageTypeMethod.body = BodyBuilder()
+      .returnStatement(messageType.toTypeRef.toJavaCode + "." + message.name)
+      .getText
 
     message.fieldDef.foreach { fieldDef =>
       val typeRef = convertType(fieldDef.dataType)
@@ -51,6 +90,16 @@ class DtoGenerator(basePackage: String) {
     }
     dtoConstructor.body = dtoConstructorBody.getText
 
+    val builderMethod = dto.appendMethod("builder", builder.toTypeRef)
+    builderMethod.visibility = VisibilityPublic
+    builderMethod.isStatic = true
+    builderMethod.body = BodyBuilder()
+      .returnStatement { b =>
+        b.newExpression(builder.toTypeRef) { b =>
+        }
+      }
+      .getText
+
     val buildMethod = builder.appendMethod("build", dto.toTypeRef)
     buildMethod.visibility = VisibilityPublic
     buildMethod.body = BodyBuilder()
@@ -61,7 +110,7 @@ class DtoGenerator(basePackage: String) {
       }
       .getText
 
-    CompilationUnit(basePackage, message.name, dto.toJavaCode)
+    dto
   }
 
   def convertType(dataType: DataType): TypeRef = dataType match {

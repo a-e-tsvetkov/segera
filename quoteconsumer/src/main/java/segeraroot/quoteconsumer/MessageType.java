@@ -4,11 +4,9 @@ import lombok.Getter;
 
 @Getter
 public enum MessageType {
+    QUOTE(0, 15),
     SUBSCRIBE(1, 3),
-    UNSUBSCRIBE(2, 3),
-    QUOTE(3, 15),
-    SYMBOLS_REQ(4, 0),
-    SYMBOLS_RES(5, 0);
+    UNSUBSCRIBE(2, 3);
 
     private final byte code;
     private final int size;
@@ -22,14 +20,14 @@ public enum MessageType {
     static {
         values = new MessageType[MessageType.values().length];
         for (MessageType messageType : MessageType.values()) {
-            assert messageType.getCode() > 0;
-            assert messageType.getCode() <= values.length;
-            assert values[messageType.getCode() - 1] == null;
-            values[messageType.getCode() - 1] = messageType;
+            assert messageType.getCode() >= 0;
+            assert messageType.getCode() < values.length;
+            assert values[messageType.getCode()] == null;
+            values[messageType.getCode()] = messageType;
         }
     }
 
     public static MessageType valueOf(byte typeByte) {
-        return values[typeByte - 1];
+        return values[typeByte];
     }
 }

@@ -25,4 +25,26 @@
             <artifactId>junit-jupiter</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>segera</groupId>
+                <artifactId>model-generator-plugin</artifactId>
+                <version>${project.version}</version>
+                <configuration>
+                    <modelFile>${project.basedir}/src/main/resources/quote.model</modelFile>
+                    <packageName>segeraroot.quotemodel</packageName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>generate-model</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

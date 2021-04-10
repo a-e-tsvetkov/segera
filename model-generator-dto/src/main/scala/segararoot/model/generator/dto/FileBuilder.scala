@@ -1,22 +1,46 @@
 package segararoot.model.generator.dto
 
 class FileBuilder() {
-
-
   private val b = new StringBuilder
 
   def getText: String = b.toString()
+
+  def append(str: String): Unit = b.append(str)
 
   def packageStatement(packageName: String): Unit = {
     b.append("package ").append(packageName).append(";\n")
   }
 
-  def classHeader(name: String): Unit = {
-    b.append("class ").append(name).append("{").append("\n")
+  def classHeader(name: String, implements: Seq[TypeRef] = Seq()): Unit = {
+    b.append("class ").append(name)
+    if (implements.nonEmpty) {
+      var first = true
+      b.append(" implements ")
+      implements.foreach { im =>
+        if (!first) {
+          b.append(", ")
+          first = false
+        }
+        b.append(im.toJavaCode)
+      }
+    }
+    b.append("{").append("\n")
   }
 
-  def classFooter(): Unit = {
+  def interfaceHeader(name: String): Unit = {
+    b.append("interface ").append(name).append("{").append("\n")
+  }
+
+  def enumHeader(name: String): Unit = {
+    b.append("enum ").append(name).append("{").append("\n")
+  }
+
+  def typeFooter(): Unit = {
     b.append("}").append("\n")
+  }
+
+  def enumValue(name: String): Unit = {
+    b.append(name).append(",\n")
   }
 
   def field(name: String, typeRef: TypeRef): Unit = {

@@ -8,14 +8,15 @@ object ClassBuilder {
   }
 }
 
-class ClassBuilder(packageName: String, parent: ClassBuilder, name: String) {
+class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: String) extends TypeBuilder {
+  private val implements: mutable.ListBuffer[TypeRef] = mutable.ListBuffer()
   private val fields: mutable.ListBuffer[FieldDecl] = mutable.ListBuffer()
   private val methods: mutable.ListBuffer[MethodDecl] = mutable.ListBuffer()
   private val innerClasses: mutable.ListBuffer[ClassBuilder] = mutable.ListBuffer()
   private val isStatic: Boolean = true
   private val visibility: VisibilityModifier = VisibilityPublic
 
-  def toTypeRef: ReferenceType = {
+  override def toTypeRef: ReferenceType = {
     ReferenceType(name)
   }
 
@@ -23,6 +24,10 @@ class ClassBuilder(packageName: String, parent: ClassBuilder, name: String) {
     val innerClass = new ClassBuilder(packageName = null, parent = this, name = name)
     innerClasses.append(innerClass)
     innerClass
+  }
+
+  def addImplements(typeRef: TypeRef): Unit = {
+    implements.append(typeRef)
   }
 
   def appendField(name: String, typeRef: TypeRef): FieldDecl = {
@@ -55,7 +60,7 @@ class ClassBuilder(packageName: String, parent: ClassBuilder, name: String) {
     if (isStatic && !isTopLevel) {
       b.modifier("static")
     }
-    b.classHeader(name)
+    b.classHeader(name, implements)
 
     fields.foreach { field =>
       b.modifier(field.visibility.toJavaCode)
@@ -67,6 +72,8 @@ class ClassBuilder(packageName: String, parent: ClassBuilder, name: String) {
       b.modifier(method.visibility.toJavaCode)
       if (method.isFinal)
         b.modifier("final")
+      if (method.isStatic)
+        b.modifier("static")
       if (method.isConstructor) {
         b.constructorHeader(name)
       } else {
@@ -82,7 +89,7 @@ class ClassBuilder(packageName: String, parent: ClassBuilder, name: String) {
       cls.classDecl(b, isTopLevel = false)
     }
 
-    b.classFooter()
+    b.typeFooter()
   }
 }
 
@@ -95,8 +102,9 @@ case class ParamDecl(name: String, typeRef: TypeRef)
 
 case class MethodDecl(isConstructor: Boolean, name: String, typeRef: TypeRef) {
   var isFinal: Boolean = false
+  var isStatic: Boolean = false
   var visibility: VisibilityModifier = VisibilityPrivate
-  var body: String = ""
+  var body: String = _
   val params: mutable.ListBuffer[ParamDecl] = mutable.ListBuffer()
 
   def addParam(name: String, typeRef: TypeRef): ParamDecl = {

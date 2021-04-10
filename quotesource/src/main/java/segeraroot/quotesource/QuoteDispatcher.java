@@ -6,8 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.QuoteConnection;
 import segeraroot.connectivity.QuoteConnectionCallback;
 import segeraroot.connectivity.SimpleQuoteConnectionCallback;
-import segeraroot.quotemodel.MessageType;
-import segeraroot.quotemodel.MessageWrapper;
+import segeraroot.quotemodel.Message;
+import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.messages.Quote;
 import segeraroot.quotemodel.messages.Subscribe;
 import segeraroot.quotemodel.messages.Unsubscribe;
@@ -19,69 +19,68 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Slf4j
 public class QuoteDispatcher {
-    private final List<QuoteConnection<MessageWrapper>> connections = new ArrayList<>();
+    private final List<QuoteConnection<Message>> connections = new ArrayList<>();
     private final Object connectionListLock = new Object();
 
     public void acceptQuote(Quote quote) {
-        List<QuoteConnection<MessageWrapper>> list;
+        List<QuoteConnection<Message>> list;
         synchronized (connectionListLock) {
             list = new ArrayList<>(connections);
         }
         for (var connection : list) {
             var context = getConnectionContext(connection);
-            if (context.subscribed(quote.getSymbol())) {
-                connection.write(MessageWrapper.builder()
-                        .type(MessageType.QUOTE)
-                        .value(quote)
-                        .build());
+            if (context.subscribed(QuoteSupport.convert(quote.symbol()))) {
+                connection.write(quote);
             }
         }
     }
 
-    private void onNewConnection(QuoteConnection<MessageWrapper> quoteConnection) {
+    private void onNewConnection(QuoteConnection<Message> quoteConnection) {
         quoteConnection.set(new ConnectionContext(quoteConnection.getName()));
         synchronized (connectionListLock) {
             connections.add(quoteConnection);
         }
     }
 
-    private void onCloseConnection(QuoteConnection<MessageWrapper> connectionHandler) {
+    private void onCloseConnection(QuoteConnection<Message> connectionHandler) {
         synchronized (connectionListLock) {
             connections.remove(connectionHandler);
         }
     }
 
-    private void onMessage(QuoteConnection<MessageWrapper> connection, MessageWrapper messageWrapper) {
+    private void onMessage(QuoteConnection<Message> connection, Message message) {
         var context = getConnectionContext(connection);
-        switch (messageWrapper.getType()) {
-            case SUBSCRIBE:
-                subscribe(context, (Subscribe) messageWrapper.getValue());
+        switch (message.messageType()) {
+            case Subscribe:
+                subscribe(context, (Subscribe) message);
                 break;
-            case UNSUBSCRIBE:
-                unsubscribe(context, (Unsubscribe) messageWrapper.getValue());
+            case Unsubscribe:
+                unsubscribe(context, (Unsubscribe) message);
                 break;
             default:
-                log.error("Unexpected message {}", messageWrapper.getType());
+                log.error("Unexpected message {}", message);
                 break;
         }
     }
 
-    private ConnectionContext getConnectionContext(QuoteConnection<MessageWrapper> connection) {
+    private ConnectionContext getConnectionContext(QuoteConnection<Message> connection) {
         return (ConnectionContext) connection.get();
     }
 
     private void subscribe(ConnectionContext context, Subscribe value) {
-        log.debug("Subscribe: {} {}", context.getName(), value.getSymbol());
-        context.subscribe(value.getSymbol());
+        String symbol = QuoteSupport.convert(value.symbol());
+        log.debug("Subscribe: {} {}", context.getName(), symbol);
+        context.subscribe(symbol);
     }
 
     private void unsubscribe(ConnectionContext context, Unsubscribe value) {
-        log.debug("unsubscribe: {} {}", context.getName(), value.getSymbol());
-        context.unsubscribe(value.getSymbol());
+        String symbol = QuoteSupport.convert(value.symbol());
+        log.debug("unsubscribe: {} {}", context.getName(), symbol);
+        context.unsubscribe(symbol);
     }
 
-    public QuoteConnectionCallback<MessageWrapper> getCallback() {
-        return SimpleQuoteConnectionCallback.<MessageWrapper>builder()
+    public QuoteConnectionCallback<Message> getCallback() {
+        return SimpleQuoteConnectionCallback.<Message>builder()
                 .newHandler(this::onNewConnection)
                 .closeHandler(this::onCloseConnection)
                 .messageHandler(this::onMessage)

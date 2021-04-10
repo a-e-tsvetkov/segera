@@ -1,6 +1,7 @@
 package segeraroot.quotesource;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.messages.Quote;
 
 import java.time.Instant;
@@ -31,8 +32,8 @@ public class QuoteGenerator {
         log.info("Start: {}", symbol);
         while (running) {
             Quote quote = Quote.builder()
-                    .date(Instant.now())
-                    .symbol(symbol)
+                    .date(Instant.now().toEpochMilli())
+                    .symbol(QuoteSupport.convert(symbol))
                     .volume(100)
                     .price(6_00100)
                     .build();
