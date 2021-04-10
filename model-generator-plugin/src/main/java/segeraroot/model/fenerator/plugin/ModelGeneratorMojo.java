@@ -17,9 +17,7 @@ import segararoot.model.generator.dto.DtoGenerator;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.util.ArrayList;
-import java.util.Enumeration;
 
 @Mojo(name = "generate-model", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
 public class ModelGeneratorMojo extends AbstractMojo {
@@ -40,18 +38,6 @@ public class ModelGeneratorMojo extends AbstractMojo {
         getLog().info("executing ModelGeneratorMojo.execute()");
         getLog().info("packageName: " + packageName);
         getLog().info("modelFile: " + modelFile);
-
-        System.out.println("++++++++++++++++++++++++++++++++");
-        try {
-            Enumeration<URL> resources = MavenProject.class.getClassLoader().getResources("/");
-            while (resources.hasMoreElements()) {
-                URL url = resources.nextElement();
-                System.out.println(url);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println("++++++++++++++++++++++++++++++++");
 
         AST ast = parse();
 
