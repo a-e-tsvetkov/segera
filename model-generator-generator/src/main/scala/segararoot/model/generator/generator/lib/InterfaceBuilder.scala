@@ -1,4 +1,4 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator.lib
 
 import scala.collection.mutable
 
@@ -21,11 +21,18 @@ case class InterfaceBuilder(packageName: String, name: String) extends TypeBuild
     b.interfaceHeader(name)
 
     methods.foreach { method =>
+      if (method.isDefault) {
+        b.modifier("default")
+      }
       b.methodHeader(method.name, method.typeRef)
       b.methodParams(method.params) { (pb, p) =>
         pb.add(p.name, p.typeRef)
       }
-      b.append(";\n")
+      if (method.isDefault) {
+        b.methodBody(method.body)
+      } else {
+        b.append(";\n")
+      }
     }
 
     b.typeFooter()

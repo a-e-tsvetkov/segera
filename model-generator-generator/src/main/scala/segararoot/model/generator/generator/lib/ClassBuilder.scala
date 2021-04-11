@@ -1,4 +1,6 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator.lib
+
+import segararoot.generator.ast._
 
 import scala.collection.mutable
 
@@ -101,6 +103,7 @@ case class FieldDecl(name: String, typeRef: TypeRef) {
 case class ParamDecl(name: String, typeRef: TypeRef)
 
 case class MethodDecl(isConstructor: Boolean, name: String, typeRef: TypeRef) {
+  var isDefault: Boolean = false
   var isFinal: Boolean = false
   var isStatic: Boolean = false
   var visibility: VisibilityModifier = VisibilityPrivate
@@ -118,6 +121,15 @@ sealed trait TypeRef {
   def toJavaCode: String
 }
 
+object TypeRef {
+  def apply(dataType: DataType): TypeRef = dataType match {
+    case DataType_Long => LongType
+    case DataType_Int => IntType
+    case DataType_Byte => ByteType
+    case DataType_FixedByteArray(subDataType, size) => ArrayType(TypeRef(subDataType))
+  }
+}
+
 object LongType extends TypeRef {
   override def toJavaCode: String = "long"
 }
@@ -128,6 +140,10 @@ object IntType extends TypeRef {
 
 object ByteType extends TypeRef {
   override def toJavaCode: String = "byte"
+}
+
+object VoidType extends TypeRef {
+  override def toJavaCode: String = "void"
 }
 
 case class ArrayType(subType: TypeRef) extends TypeRef {

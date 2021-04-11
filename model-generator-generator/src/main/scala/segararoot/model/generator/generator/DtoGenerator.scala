@@ -1,6 +1,7 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator
 
 import segararoot.generator.ast._
+import segararoot.model.generator.generator.lib._
 
 import scala.collection.JavaConverters._
 
@@ -65,7 +66,7 @@ class DtoGenerator(basePackage: String) {
       .getText
 
     message.fieldDef.foreach { fieldDef =>
-      val typeRef = convertType(fieldDef.dataType)
+      val typeRef = TypeRef(fieldDef.dataType)
       val field = dto.appendField(fieldDef.name, typeRef)
       field.isFinal = true
       val getter = dto.appendMethod(fieldDef.name, typeRef)
@@ -111,15 +112,5 @@ class DtoGenerator(basePackage: String) {
       .getText
 
     dto
-  }
-
-  def convertType(dataType: DataType): TypeRef = dataType match {
-    case DataType_Long => LongType
-
-    case DataType_Int => IntType
-
-    case DataType_Byte => ByteType
-
-    case DataType_FixedByteArray(subDataType, size) => ArrayType(convertType(subDataType))
   }
 }

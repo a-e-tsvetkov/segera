@@ -1,4 +1,4 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator.lib
 
 case class BodyBuilder() {
   private val b = new StringBuilder

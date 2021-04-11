@@ -1,4 +1,4 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator.lib
 
 trait TypeBuilder {
   def name: String

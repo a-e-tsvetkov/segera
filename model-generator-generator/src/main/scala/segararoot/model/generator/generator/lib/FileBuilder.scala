@@ -1,4 +1,4 @@
-package segararoot.model.generator.dto
+package segararoot.model.generator.generator.lib
 
 class FileBuilder() {
   private val b = new StringBuilder

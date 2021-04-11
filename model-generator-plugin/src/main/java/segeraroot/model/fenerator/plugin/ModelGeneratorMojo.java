@@ -11,8 +11,9 @@ import segararoot.generator.ast.AST;
 import segararoot.generator.parser.ParseResultFailure;
 import segararoot.generator.parser.ParseResultSuccess;
 import segararoot.generator.parser.Parser;
-import segararoot.model.generator.dto.CompilationUnit;
-import segararoot.model.generator.dto.DtoGenerator;
+import segararoot.model.generator.generator.DtoGenerator;
+import segararoot.model.generator.generator.FliweightGenerator;
+import segararoot.model.generator.generator.lib.CompilationUnit;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,6 +27,8 @@ public class ModelGeneratorMojo extends AbstractMojo {
 
     @Parameter(property = "generateDto", defaultValue = "true")
     boolean generateDto;
+    @Parameter(property = "generateFliweightInterface", defaultValue = "true")
+    boolean generateFlyweightInterface;
     @Parameter(property = "packageName", required = true)
     String packageName;
     @Parameter(property = "modelFile", required = true)
@@ -46,7 +49,10 @@ public class ModelGeneratorMojo extends AbstractMojo {
             var units = new DtoGenerator(packageName).generate(ast);
             allUnits.addAll(units);
         }
-
+        if (generateFlyweightInterface) {
+            var units = new FliweightGenerator(packageName).generate(ast);
+            allUnits.addAll(units);
+        }
         for (CompilationUnit allUnit : allUnits) {
             save(allUnit);
         }
@@ -58,6 +64,7 @@ public class ModelGeneratorMojo extends AbstractMojo {
         File folder = new File(outputFolder, packageToPath(compilationUnit.packageName()));
         File file = new File(folder, compilationUnit.name() + ".java");
 
+        //noinspection ResultOfMethodCallIgnored
         folder.mkdirs();
         try {
             new FileOutputStream(file).write(compilationUnit.body().getBytes());
