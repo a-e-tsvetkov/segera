@@ -45,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>segera</groupId>
-            <artifactId>model-generator-dto</artifactId>
+            <artifactId>model-generator-generator</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

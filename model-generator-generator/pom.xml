@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>model-generator-dto</artifactId>
+    <artifactId>model-generator-generator</artifactId>
 
     <properties>
     </properties>
