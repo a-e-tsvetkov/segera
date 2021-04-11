@@ -14,3 +14,4 @@ I want to create simple application and show how it can be done in incremental s
 * V5 - Separate serialization logic and server logic.
 * V6 - Model generator: parser.
 * V7 - Model generator: DTO generator.
+* V8 - Stop serializer dependency on message size

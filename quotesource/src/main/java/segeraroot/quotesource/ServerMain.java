@@ -5,7 +5,9 @@ import java.util.Arrays;
 public class ServerMain {
     public static void main(String[] args) {
         var quoteDispatcher = new QuoteDispatcher();
-        var serializer = new SerializationQuoteConnectionCallbackFactory(new Serialization());
+        var serializer = new SerializationQuoteConnectionCallbackFactory<>(
+                new QuoteMessageSerialization(),
+                new QuoteMessageDeserializer());
 
         for (String symbol : Arrays.asList("ABC", "DEF", "GHK")) {
             var quoteGenerator = new QuoteGenerator(symbol, quoteDispatcher::acceptQuote);
