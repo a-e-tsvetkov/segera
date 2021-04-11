@@ -16,3 +16,4 @@ I want to create simple application and show how it can be done in incremental s
 * V7 - Model generator: DTO generator.
 * V8 - Stop serializer dependency on message size
 * V9 - Model generator: Flyweight interfaces generator
+* V10 - Switch server to Flyweight interfaces
