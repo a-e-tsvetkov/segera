@@ -6,6 +6,7 @@ import segeraroot.quotemodel.QuoteConstant;
 import segeraroot.quotemodel.messages.Quote;
 import segeraroot.quotemodel.messages.Subscribe;
 import segeraroot.quotemodel.messages.Unsubscribe;
+import segeraroot.quotesource.infra.MessageDeserializer;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

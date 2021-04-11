@@ -1,9 +1,9 @@
-package segeraroot.quotesource;
+package segeraroot.quotesource.infra;
 
 
-import segeraroot.connectivity.QuoteConnection;
+import segeraroot.connectivity.Connection;
 
-public abstract class QuoteConnectionBase<T> implements QuoteConnection<T> {
+public abstract class ConnectionBase<T> implements Connection<T> {
     private Object context;
 
     public Object get() {

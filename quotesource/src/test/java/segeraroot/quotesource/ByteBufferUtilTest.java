@@ -1,6 +1,7 @@
 package segeraroot.quotesource;
 
 import org.junit.jupiter.api.Test;
+import segeraroot.quotesource.infra.ByteBufferUtil;
 
 import java.nio.ByteBuffer;
 

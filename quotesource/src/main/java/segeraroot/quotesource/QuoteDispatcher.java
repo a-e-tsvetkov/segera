@@ -3,9 +3,9 @@ package segeraroot.quotesource;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.QuoteConnection;
-import segeraroot.connectivity.QuoteConnectionCallback;
-import segeraroot.connectivity.SimpleQuoteConnectionCallback;
+import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ConnectionCallback;
+import segeraroot.connectivity.SimpleConnectionCallback;
 import segeraroot.quotemodel.Message;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.messages.Quote;
@@ -19,11 +19,11 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 @Slf4j
 public class QuoteDispatcher {
-    private final List<QuoteConnection<Message>> connections = new ArrayList<>();
+    private final List<Connection<Message>> connections = new ArrayList<>();
     private final Object connectionListLock = new Object();
 
     public void acceptQuote(Quote quote) {
-        List<QuoteConnection<Message>> list;
+        List<Connection<Message>> list;
         synchronized (connectionListLock) {
             list = new ArrayList<>(connections);
         }
@@ -35,20 +35,20 @@ public class QuoteDispatcher {
         }
     }
 
-    private void onNewConnection(QuoteConnection<Message> quoteConnection) {
-        quoteConnection.set(new ConnectionContext(quoteConnection.getName()));
+    private void onNewConnection(Connection<Message> connection) {
+        connection.set(new ConnectionContext(connection.getName()));
         synchronized (connectionListLock) {
-            connections.add(quoteConnection);
+            connections.add(connection);
         }
     }
 
-    private void onCloseConnection(QuoteConnection<Message> connectionHandler) {
+    private void onCloseConnection(Connection<Message> connectionHandler) {
         synchronized (connectionListLock) {
             connections.remove(connectionHandler);
         }
     }
 
-    private void onMessage(QuoteConnection<Message> connection, Message message) {
+    private void onMessage(Connection<Message> connection, Message message) {
         var context = getConnectionContext(connection);
         switch (message.messageType()) {
             case Subscribe:
@@ -63,7 +63,7 @@ public class QuoteDispatcher {
         }
     }
 
-    private ConnectionContext getConnectionContext(QuoteConnection<Message> connection) {
+    private ConnectionContext getConnectionContext(Connection<Message> connection) {
         return (ConnectionContext) connection.get();
     }
 
@@ -79,8 +79,8 @@ public class QuoteDispatcher {
         context.unsubscribe(symbol);
     }
 
-    public QuoteConnectionCallback<Message> getCallback() {
-        return SimpleQuoteConnectionCallback.<Message>builder()
+    public ConnectionCallback<Message> getCallback() {
+        return SimpleConnectionCallback.<Message>builder()
                 .newHandler(this::onNewConnection)
                 .closeHandler(this::onCloseConnection)
                 .messageHandler(this::onMessage)

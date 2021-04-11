@@ -1,8 +1,8 @@
-package segeraroot.quotesource;
+package segeraroot.quotesource.infra;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.connectivity.ConnectionCallback;
 import segeraroot.connectivity.Protocol;
-import segeraroot.connectivity.QuoteConnectionCallback;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,11 +19,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @Slf4j
 public class Server {
     private final int port;
-    private final QuoteConnectionCallback<ByteBuffer> connectionCallback;
+    private final ConnectionCallback<ByteBuffer> connectionCallback;
     private Selector selector;
     private ByteBuffer buffer;
 
-    public Server(int port, QuoteConnectionCallback<ByteBuffer> connectionCallback) {
+    public Server(int port, ConnectionCallback<ByteBuffer> connectionCallback) {
         this.port = port;
         this.connectionCallback = connectionCallback;
     }
@@ -91,7 +91,7 @@ public class Server {
         connectionCallback.handleNewConnection(handler);
     }
 
-    private class ConnectionHandler extends QuoteConnectionBase<ByteBuffer> {
+    private class ConnectionHandler extends ConnectionBase<ByteBuffer> {
 
         private final SelectionKey key;
 

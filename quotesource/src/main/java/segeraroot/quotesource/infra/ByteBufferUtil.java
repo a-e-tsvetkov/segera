@@ -1,4 +1,4 @@
-package segeraroot.quotesource;
+package segeraroot.quotesource.infra;
 
 import java.nio.ByteBuffer;
 

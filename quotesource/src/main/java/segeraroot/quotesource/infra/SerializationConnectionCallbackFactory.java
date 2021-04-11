@@ -1,19 +1,19 @@
-package segeraroot.quotesource;
+package segeraroot.quotesource.infra;
 
 import lombok.AllArgsConstructor;
-import segeraroot.connectivity.QuoteConnection;
-import segeraroot.connectivity.QuoteConnectionCallback;
-import segeraroot.connectivity.SimpleQuoteConnectionCallback;
+import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ConnectionCallback;
+import segeraroot.connectivity.SimpleConnectionCallback;
 
 import java.nio.ByteBuffer;
 
 @AllArgsConstructor
-public class SerializationQuoteConnectionCallbackFactory<T> {
-    private final Serialization<T> serialization;
+public class SerializationConnectionCallbackFactory<T> {
+    private final MessageSerializer<T> serializer;
     private final MessageDeserializer<T> deserializer;
 
-    public QuoteConnectionCallback<ByteBuffer> handleMessage(QuoteConnectionCallback<T> callback) {
-        return SimpleQuoteConnectionCallback.<ByteBuffer>builder()
+    public ConnectionCallback<ByteBuffer> handleMessage(ConnectionCallback<T> callback) {
+        return SimpleConnectionCallback.<ByteBuffer>builder()
                 .newHandler(connection ->
                         callback.handleNewConnection(attach(callback, connection)))
                 .closeHandler(connection ->
@@ -22,53 +22,53 @@ public class SerializationQuoteConnectionCallbackFactory<T> {
                 .build();
     }
 
-    private QuoteConnection<T> attach(QuoteConnectionCallback<T> callback, QuoteConnection<ByteBuffer> connection) {
+    private Connection<T> attach(ConnectionCallback<T> callback, Connection<ByteBuffer> connection) {
         var wrapper = new SerializingConnection<>(
                 connection,
                 callback,
-                serialization,
+                serializer,
                 deserializer,
                 "W|" + connection.getName());
         connection.set(wrapper);
         return wrapper;
     }
 
-    private void handleMessage(QuoteConnection<ByteBuffer> connection, ByteBuffer buffer) {
+    private void handleMessage(Connection<ByteBuffer> connection, ByteBuffer buffer) {
         var wrapper = getConnection(connection);
         wrapper.onMessage(buffer);
     }
 
     @SuppressWarnings("unchecked")
-    private SerializingConnection<T> getConnection(QuoteConnection<ByteBuffer> connection) {
+    private SerializingConnection<T> getConnection(Connection<ByteBuffer> connection) {
         return (SerializingConnection<T>) connection.get();
     }
 
 
     private static class SerializingConnection<T>
-            extends QuoteConnectionBase<T> {
-        private final QuoteConnection<ByteBuffer> connection;
-        private final QuoteConnectionCallback<T> callback;
-        private final Serialization<T> serialization;
+            extends ConnectionBase<T> {
+        private final Connection<ByteBuffer> connection;
+        private final ConnectionCallback<T> callback;
+        private final MessageSerializer<T> serializer;
         private final MessageDeserializer<T> deserializer;
 
         private final String name;
 
         public SerializingConnection(
-                QuoteConnection<ByteBuffer> connection,
-                QuoteConnectionCallback<T> callback,
-                Serialization<T> serialization,
+                Connection<ByteBuffer> connection,
+                ConnectionCallback<T> callback,
+                MessageSerializer<T> serializer,
                 MessageDeserializer<T> deserializer,
                 String name) {
             this.connection = connection;
             this.callback = callback;
-            this.serialization = serialization;
+            this.serializer = serializer;
             this.deserializer = deserializer;
             this.name = name;
         }
 
         @Override
         public void write(T message) {
-            connection.write(serialization.serialize(message));
+            connection.write(serializer.serialize(message));
         }
 
         @Override

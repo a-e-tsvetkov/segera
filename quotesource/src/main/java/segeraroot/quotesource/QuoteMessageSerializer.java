@@ -3,10 +3,11 @@ package segeraroot.quotesource;
 import segeraroot.quotemodel.Message;
 import segeraroot.quotemodel.QuoteConstant;
 import segeraroot.quotemodel.messages.Quote;
+import segeraroot.quotesource.infra.MessageSerializer;
 
 import java.nio.ByteBuffer;
 
-public class QuoteMessageSerialization implements Serialization<Message> {
+public class QuoteMessageSerializer implements MessageSerializer<Message> {
     @Override
     public ByteBuffer serialize(Message message) {
         ByteBuffer buffer = ByteBuffer.allocate(1024);

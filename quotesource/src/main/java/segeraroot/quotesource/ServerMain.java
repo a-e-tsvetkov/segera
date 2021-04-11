@@ -1,12 +1,15 @@
 package segeraroot.quotesource;
 
+import segeraroot.quotesource.infra.SerializationConnectionCallbackFactory;
+import segeraroot.quotesource.infra.Server;
+
 import java.util.Arrays;
 
 public class ServerMain {
     public static void main(String[] args) {
         var quoteDispatcher = new QuoteDispatcher();
-        var serializer = new SerializationQuoteConnectionCallbackFactory<>(
-                new QuoteMessageSerialization(),
+        var serializer = new SerializationConnectionCallbackFactory<>(
+                new QuoteMessageSerializer(),
                 new QuoteMessageDeserializer());
 
         for (String symbol : Arrays.asList("ABC", "DEF", "GHK")) {

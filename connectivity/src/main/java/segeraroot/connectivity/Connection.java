@@ -1,6 +1,6 @@
 package segeraroot.connectivity;
 
-public interface QuoteConnection<T> {
+public interface Connection<T> {
     void write(T messageWrapper);
 
     Object get();
