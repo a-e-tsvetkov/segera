@@ -6,10 +6,11 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @Builder
-public class SimpleConnectionCallback<T> implements ConnectionCallback<T> {
+public class SimpleConnectionCallback<T, BuilderFactory> implements ConnectionCallback<T, BuilderFactory> {
     private final Consumer<Connection<T>> closeHandler;
     private final Consumer<Connection<T>> newHandler;
     private final BiConsumer<Connection<T>, T> messageHandler;
+    private final BiConsumer<Connection<T>, BuilderFactory> writingHandler;
 
     @Override
     public void handleCloseConnection(Connection<T> connection) {
@@ -22,7 +23,12 @@ public class SimpleConnectionCallback<T> implements ConnectionCallback<T> {
     }
 
     @Override
-    public void handleMessageConnection(Connection<T> connection, T messageWrapper) {
+    public void handleMessage(Connection<T> connection, T messageWrapper) {
         messageHandler.accept(connection, messageWrapper);
+    }
+
+    @Override
+    public void handleWriting(Connection<T> connection, BuilderFactory builderFactory) {
+        writingHandler.accept(connection, builderFactory);
     }
 }

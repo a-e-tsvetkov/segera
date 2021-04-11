@@ -1,5 +1,6 @@
 package segeraroot.model.fenerator.plugin;
 
+import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -35,6 +36,8 @@ public class ModelGeneratorMojo extends AbstractMojo {
     File modelFile;
     @Parameter(property = "outputFolder", defaultValue = "${project.build.directory}/generated-sources/model")
     File outputFolder;
+    @Parameter(property = "modelFile", defaultValue = "1.0")
+    String connectivityVersion;
 
     @Override
     public void execute() throws MojoExecutionException {
@@ -56,6 +59,13 @@ public class ModelGeneratorMojo extends AbstractMojo {
         for (CompilationUnit allUnit : allUnits) {
             save(allUnit);
         }
+
+        Dependency connectivity = new Dependency();
+        connectivity.setGroupId("segera");
+        connectivity.setArtifactId("connectivity");
+        connectivity.setVersion(connectivityVersion);
+        //noinspection unchecked
+        project.getDependencies().add(connectivity);
 
         project.addCompileSourceRoot(outputFolder.getPath());
     }

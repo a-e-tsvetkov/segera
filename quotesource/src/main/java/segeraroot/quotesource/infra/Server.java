@@ -1,6 +1,7 @@
 package segeraroot.quotesource.infra;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.connectivity.ByteBufferFactory;
 import segeraroot.connectivity.ConnectionCallback;
 import segeraroot.connectivity.Protocol;
 
@@ -14,16 +15,17 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
 
 
 @Slf4j
 public class Server {
     private final int port;
-    private final ConnectionCallback<ByteBuffer> connectionCallback;
+    private final ConnectionCallback<ByteBuffer, ByteBufferFactory> connectionCallback;
     private Selector selector;
     private ByteBuffer buffer;
 
-    public Server(int port, ConnectionCallback<ByteBuffer> connectionCallback) {
+    public Server(int port, ConnectionCallback<ByteBuffer, ByteBufferFactory> connectionCallback) {
         this.port = port;
         this.connectionCallback = connectionCallback;
     }
@@ -91,25 +93,27 @@ public class Server {
         connectionCallback.handleNewConnection(handler);
     }
 
-    private class ConnectionHandler extends ConnectionBase<ByteBuffer> {
+    private class ConnectionHandler extends ConnectionBase<ByteBuffer> implements ByteBufferFactory {
 
         private final SelectionKey key;
+        private final SocketChannel channel;
 
         private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
         private volatile boolean headerIsInBuffer = false;
 
         public ConnectionHandler(SelectionKey key) {
             this.key = key;
+            channel = (SocketChannel) key.channel();
+
         }
 
         public void read(SelectionKey key) {
             assert this.key == key;
-            var socketChannel = (SocketChannel) key.channel();
             try {
-                log.trace("Reading from channel: {}", socketChannel.getRemoteAddress());
+                log.trace("Reading from channel: {}", channel.getRemoteAddress());
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
-                int length = socketChannel.read(buffer);
+                int length = channel.read(buffer);
                 if (length == -1) {
                     onClose(this);
                     key.cancel();
@@ -118,7 +122,7 @@ public class Server {
                 buffer.flip();
             } catch (IOException e) {
                 try {
-                    socketChannel.close();
+                    channel.close();
                 } catch (IOException ioException) {
                     log.error("Error while closing connection", e);
                 }
@@ -127,7 +131,7 @@ public class Server {
                 return;
             }
 
-            connectionCallback.handleMessageConnection(this, buffer);
+            connectionCallback.handleMessage(this, buffer);
         }
 
 
@@ -152,13 +156,30 @@ public class Server {
                 socketChannel.write(messageWrapper);
                 assert buffer.remaining() == 0;
             }
+            connectionCallback.handleWriting(this, this);
             key.interestOps(SelectionKey.OP_READ);
         }
 
         @Override
-        public void write(ByteBuffer messageWrapper) {
-            log.debug("Add message to queue");
-            writeQueue.add(messageWrapper);
+        public void write(Consumer<ByteBuffer> consumer) {
+            buffer.position(0);
+            buffer.limit(buffer.capacity());
+            consumer.accept(buffer);
+            buffer.flip();
+            try {
+                channel.write(buffer);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void startWriting() {
+            try {
+                log.debug("Start writing {}", channel.getRemoteAddress());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();
         }

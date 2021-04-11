@@ -11,7 +11,7 @@ class FliweightGenerator(basePackage: String) {
   def generate(ast: AST): java.util.Collection[CompilationUnit] = {
     val readersInterfaces = ast.messageDef
       .map(message =>
-        generateGetInterface(
+        generateReaderInterface(
           message,
           basePackage + ".writers"
         ))
@@ -58,8 +58,8 @@ class FliweightGenerator(basePackage: String) {
     factory
   }
 
-  private def generateGetInterface(message: Message,
-                                   messagesBasePackage: String) = {
+  private def generateBuilderInterface(message: Message,
+                                       messagesBasePackage: String) = {
     val builder = InterfaceBuilder(messagesBasePackage, message.name + "Builder")
 
     message.fieldDef.foreach { message =>
@@ -71,8 +71,8 @@ class FliweightGenerator(basePackage: String) {
     builder
   }
 
-  private def generateBuilderInterface(message: Message,
-                                       messagesBasePackage: String) = {
+  private def generateReaderInterface(message: Message,
+                                      messagesBasePackage: String) = {
     val reader = InterfaceBuilder(messagesBasePackage, message.name + "Reader")
 
     message.fieldDef.foreach { message =>

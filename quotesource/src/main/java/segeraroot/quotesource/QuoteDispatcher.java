@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.ConnectionCallback;
 import segeraroot.connectivity.SimpleConnectionCallback;
+import segeraroot.quotemodel.BuilderFactory;
 import segeraroot.quotemodel.Message;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.messages.Quote;
@@ -30,7 +31,8 @@ public class QuoteDispatcher {
         for (var connection : list) {
             var context = getConnectionContext(connection);
             if (context.subscribed(QuoteSupport.convert(quote.symbol()))) {
-                connection.write(quote);
+                context.add(quote);
+                connection.startWriting();
             }
         }
     }
@@ -79,17 +81,33 @@ public class QuoteDispatcher {
         context.unsubscribe(symbol);
     }
 
-    public ConnectionCallback<Message> getCallback() {
-        return SimpleConnectionCallback.<Message>builder()
+    public ConnectionCallback<Message, BuilderFactory> getCallback() {
+        return SimpleConnectionCallback.<Message, BuilderFactory>builder()
                 .newHandler(this::onNewConnection)
                 .closeHandler(this::onCloseConnection)
                 .messageHandler(this::onMessage)
+                .writingHandler(this::onWrite)
                 .build();
+    }
+
+    private void onWrite(Connection<Message> messageConnection, BuilderFactory builderFactory) {
+        var context = getConnectionContext(messageConnection);
+        context.drainQueue()
+                .forEach(quote ->
+                        builderFactory.createQuoteBuilder()
+                                .symbol(quote.symbol())
+                                .price(quote.price())
+                                .volume(quote.volume())
+                                .date(quote.date())
+                                .send()
+                );
     }
 
     @RequiredArgsConstructor
     private static class ConnectionContext {
         private final Set<String> subscriptions = new ConcurrentSkipListSet<>();
+        private List<Quote> toSend = new ArrayList<>();
+        private final Object lock = new Object();
         @Getter
         private final String name;
 
@@ -103,6 +121,20 @@ public class QuoteDispatcher {
 
         public boolean subscribed(String symbol) {
             return subscriptions.contains(symbol);
+        }
+
+        public List<Quote> drainQueue() {
+            synchronized (lock) {
+                List<Quote> tmp = this.toSend;
+                toSend = new ArrayList<>();
+                return tmp;
+            }
+        }
+
+        public void add(Quote quote) {
+            synchronized (lock) {
+                toSend.add(quote);
+            }
         }
     }
 }

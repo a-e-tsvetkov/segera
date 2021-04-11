@@ -1,7 +1,7 @@
 package segeraroot.connectivity;
 
 public interface Connection<T> {
-    void write(T messageWrapper);
+    void startWriting();
 
     Object get();
 
