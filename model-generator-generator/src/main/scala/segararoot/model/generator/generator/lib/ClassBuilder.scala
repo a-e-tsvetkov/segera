@@ -12,6 +12,7 @@ object ClassBuilder {
 
 class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: String) extends TypeBuilder {
   private val implements: mutable.ListBuffer[TypeRef] = mutable.ListBuffer()
+  private var extend: Option[TypeRef] = None
   private val fields: mutable.ListBuffer[FieldDecl] = mutable.ListBuffer()
   private val methods: mutable.ListBuffer[MethodDecl] = mutable.ListBuffer()
   private val innerClasses: mutable.ListBuffer[ClassBuilder] = mutable.ListBuffer()
@@ -21,6 +22,8 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
   override def toTypeRef: ReferenceType = {
     ReferenceType(name)
   }
+
+  def setExtends(ref: TypeRef): Unit = extend = Option(ref)
 
   def createInnerClass(name: String): ClassBuilder = {
     val innerClass = new ClassBuilder(packageName = null, parent = this, name = name)
@@ -62,7 +65,7 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
     if (isStatic && !isTopLevel) {
       b.modifier("static")
     }
-    b.classHeader(name, implements)
+    b.classHeader(name, extend, implements)
 
     fields.foreach { field =>
       b.modifier(field.visibility.toJavaCode)
@@ -100,9 +103,9 @@ case class FieldDecl(name: String, typeRef: TypeRef) {
   var visibility: VisibilityModifier = VisibilityPrivate
   var valueString: String = _
 
-  def value(callback: ExpressonBuilder => Unit): Unit = {
+  def value(callback: ExpressionBuilder => Unit): Unit = {
     val b = new StringBuilder
-    callback(new ExpressonBuilder(b))
+    callback(new ExpressionBuilder(b))
     valueString = b.mkString
   }
 }
@@ -129,6 +132,10 @@ sealed trait TypeRef {
     GenercType(this, Seq(str))
   }
 
+  def addGenericParams(str: TypeRef): TypeRef = {
+    GenercType(this, Seq(str.toJavaCode))
+  }
+
   def toJavaCode: String
 }
 
@@ -140,7 +147,7 @@ object TypeRef {
     case DataType_FixedByteArray(subDataType, size) => ArrayType(TypeRef(subDataType))
   }
 
-  def apply(clazz: Class[_]): TypeRef = {
+  def apply(clazz: Class[_]): ReferenceType = {
     ReferenceType(clazz.getCanonicalName)
   }
 }
@@ -155,6 +162,10 @@ object IntType extends TypeRef {
 
 object ByteType extends TypeRef {
   override def toJavaCode: String = "byte"
+}
+
+object BooleanType extends TypeRef {
+  override def toJavaCode: String = "boolean"
 }
 
 object VoidType extends TypeRef {
@@ -179,6 +190,10 @@ sealed trait VisibilityModifier {
 
 object VisibilityPublic extends VisibilityModifier {
   override def toJavaCode: String = "public"
+}
+
+object VisibilityProtected extends VisibilityModifier {
+  override def toJavaCode: String = "protected"
 }
 
 object VisibilityPrivate extends VisibilityModifier {

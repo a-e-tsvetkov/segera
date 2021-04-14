@@ -4,10 +4,10 @@ import segeraroot.connectivity.Connection;
 
 import java.nio.ByteBuffer;
 
-public abstract class MessageDeserializerBase<ReadersVisitor, MessageType> implements MessageDeserializer {
+public abstract class MessageDeserializerBase<ReadersVisitor> implements MessageDeserializer {
     protected final ReadersVisitor callback;
     protected ReadingState readingState = ReadingState.START;
-    protected MessageType messageType;
+    protected byte messageType;
 
     public MessageDeserializerBase(ReadersVisitor callback) {
         this.callback = callback;
@@ -16,7 +16,7 @@ public abstract class MessageDeserializerBase<ReadersVisitor, MessageType> imple
     public void onMessage(Connection connection, ByteBuffer buffer) {
         switch (readingState) {
             case START:
-                MessageType messageType = toType(buffer.get());
+                byte messageType = buffer.get();
                 readingState = ReadingState.IN_MESSAGE;
                 this.messageType = messageType;
                 break;
@@ -32,6 +32,4 @@ public abstract class MessageDeserializerBase<ReadersVisitor, MessageType> imple
     }
 
     protected abstract void parseBody(Connection connection, ByteBuffer buffer);
-
-    protected abstract MessageType toType(byte b);
 }

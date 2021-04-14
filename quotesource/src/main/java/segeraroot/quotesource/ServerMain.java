@@ -2,6 +2,7 @@ package segeraroot.quotesource;
 
 import segeraroot.quotemodel.ReadersVisitor;
 import segeraroot.quotemodel.impl.BuilderFactoryImpl;
+import segeraroot.quotemodel.impl.MessageDeserializerImpl;
 import segeraroot.quotesource.infra.SerializationConnectionCallbackFactory;
 import segeraroot.quotesource.infra.Server;
 
@@ -11,7 +12,7 @@ public class ServerMain {
     public static void main(String[] args) {
         var quoteDispatcher = new QuoteDispatcher<BuilderFactoryImpl>();
         var serializer = new SerializationConnectionCallbackFactory<BuilderFactoryImpl, ReadersVisitor<BuilderFactoryImpl>>(
-                QuoteMessageDeserializer::new,
+                MessageDeserializerImpl::new,
                 BuilderFactoryImpl::new
         );
 

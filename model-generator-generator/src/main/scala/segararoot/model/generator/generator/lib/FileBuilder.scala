@@ -11,8 +11,11 @@ class FileBuilder() {
     b.append("package ").append(packageName).append(";\n")
   }
 
-  def classHeader(name: String, implements: Seq[TypeRef] = Seq()): Unit = {
+  def classHeader(name: String, eo: Option[TypeRef], implements: Seq[TypeRef] = Seq()): Unit = {
     b.append("class ").append(name)
+    eo.foreach { e =>
+      b.append(" extends ").append(e.toJavaCode)
+    }
     if (implements.nonEmpty) {
       var first = true
       b.append(" implements ")
