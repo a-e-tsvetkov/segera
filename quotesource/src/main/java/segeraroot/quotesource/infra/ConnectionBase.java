@@ -3,7 +3,7 @@ package segeraroot.quotesource.infra;
 
 import segeraroot.connectivity.Connection;
 
-public abstract class ConnectionBase<T> implements Connection<T> {
+public abstract class ConnectionBase<T> implements Connection {
     private Object context;
 
     public Object get() {

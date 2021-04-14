@@ -118,6 +118,10 @@ case class MethodDecl(isConstructor: Boolean, name: String, typeRef: TypeRef) {
 }
 
 sealed trait TypeRef {
+  def addGenericParams(str: String): TypeRef = {
+    GenercType(this, Seq(str))
+  }
+
   def toJavaCode: String
 }
 
@@ -127,6 +131,10 @@ object TypeRef {
     case DataType_Int => IntType
     case DataType_Byte => ByteType
     case DataType_FixedByteArray(subDataType, size) => ArrayType(TypeRef(subDataType))
+  }
+
+  def apply(clazz: Class[_]): TypeRef = {
+    ReferenceType(clazz.getCanonicalName)
   }
 }
 
@@ -152,6 +160,10 @@ case class ArrayType(subType: TypeRef) extends TypeRef {
 
 case class ReferenceType(name: String) extends TypeRef {
   override def toJavaCode: String = name
+}
+
+case class GenercType(base: TypeRef, params: Seq[String]) extends TypeRef {
+  override def toJavaCode: String = base.toJavaCode + "<" + params.mkString(", ") + ">"
 }
 
 sealed trait VisibilityModifier {

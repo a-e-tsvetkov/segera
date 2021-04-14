@@ -1,6 +1,5 @@
 package segeraroot.model.fenerator.plugin;
 
-import org.apache.maven.model.Dependency;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -13,7 +12,7 @@ import segararoot.generator.parser.ParseResultFailure;
 import segararoot.generator.parser.ParseResultSuccess;
 import segararoot.generator.parser.Parser;
 import segararoot.model.generator.generator.DtoGenerator;
-import segararoot.model.generator.generator.FliweightGenerator;
+import segararoot.model.generator.generator.FlyweightGenerator;
 import segararoot.model.generator.generator.lib.CompilationUnit;
 
 import java.io.File;
@@ -21,7 +20,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
-@Mojo(name = "generate-model", defaultPhase = LifecyclePhase.GENERATE_SOURCES)
+@Mojo(name = "generate-model", defaultPhase = LifecyclePhase.VALIDATE)
 public class ModelGeneratorMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project}", required = true, readonly = true)
     MavenProject project;
@@ -53,19 +52,22 @@ public class ModelGeneratorMojo extends AbstractMojo {
             allUnits.addAll(units);
         }
         if (generateFlyweightInterface) {
-            var units = new FliweightGenerator(packageName).generate(ast);
+            var units = new FlyweightGenerator(packageName).generate(ast);
             allUnits.addAll(units);
         }
         for (CompilationUnit allUnit : allUnits) {
             save(allUnit);
         }
 
+/*
         Dependency connectivity = new Dependency();
         connectivity.setGroupId("segera");
         connectivity.setArtifactId("connectivity");
         connectivity.setVersion(connectivityVersion);
+        connectivity.setScope("compile");
         //noinspection unchecked
         project.getDependencies().add(connectivity);
+*/
 
         project.addCompileSourceRoot(outputFolder.getPath());
     }

@@ -4,8 +4,15 @@ import scala.collection.mutable
 
 case class InterfaceBuilder(packageName: String, name: String) extends TypeBuilder {
   private val visibility: VisibilityModifier = VisibilityPublic
-
+  private val generics: mutable.ListBuffer[String] = mutable.ListBuffer()
+  private val implements: mutable.ListBuffer[TypeRef] = mutable.ListBuffer()
   private val methods: mutable.ListBuffer[MethodDecl] = mutable.ListBuffer()
+
+  def addGeneric(name: String): Unit = generics.append(name)
+
+  def addImplements(typeRef: TypeRef): Unit = {
+    implements.append(typeRef)
+  }
 
   def appendMethod(name: String, typeRef: TypeRef): MethodDecl = {
     val methodDecl = MethodDecl(isConstructor = false, name, typeRef)
@@ -18,7 +25,7 @@ case class InterfaceBuilder(packageName: String, name: String) extends TypeBuild
     b.packageStatement(packageName)
 
     b.modifier(visibility.toJavaCode)
-    b.interfaceHeader(name)
+    b.interfaceHeader(name, generics = generics, implements = implements)
 
     methods.foreach { method =>
       if (method.isDefault) {

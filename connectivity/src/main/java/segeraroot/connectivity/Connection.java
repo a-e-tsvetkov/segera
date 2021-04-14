@@ -1,6 +1,6 @@
 package segeraroot.connectivity;
 
-public interface Connection<T> {
+public interface Connection {
     void startWriting();
 
     Object get();

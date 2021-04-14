@@ -1,67 +1,82 @@
 package segeraroot.quotesource.infra;
 
 import lombok.AllArgsConstructor;
-import segeraroot.connectivity.*;
+import segeraroot.connectivity.ByteBufferFactory;
+import segeraroot.connectivity.ByteBufferHolder;
+import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ConnectionCallback;
 
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 @AllArgsConstructor
-public class SerializationConnectionCallbackFactory<T, BuilderFactory extends ByteBufferHolder> {
-    private final MessageDeserializer<T> deserializer;
+public class SerializationConnectionCallbackFactory<BuilderFactory extends ByteBufferHolder, ReadersVisitor extends ConnectionCallback<BuilderFactory>> {
+    private final Function<ReadersVisitor, MessageDeserializer> deserializerFactory;
     private final Supplier<BuilderFactory> builderFactoryFactory;
 
-    public ConnectionCallback<ByteBuffer, ByteBufferFactory> handleMessage(ConnectionCallback<T, ? super BuilderFactory> callback) {
-        return SimpleConnectionCallback.<ByteBuffer, ByteBufferFactory>builder()
-                .newHandler(connection ->
-                        callback.handleNewConnection(attach(callback, connection)))
-                .closeHandler(connection ->
-                        callback.handleCloseConnection(getConnection(connection)))
-                .messageHandler(this::handleMessage)
-                .writingHandler(this::handleWriting)
-                .build();
+    public SerializationConnectionCallback handleMessage(ReadersVisitor callback) {
+        return new SerializationConnectionCallback(callback);
     }
 
-    private Connection<T> attach(ConnectionCallback<T, ? super BuilderFactory> callback, Connection<ByteBuffer> connection) {
+    @AllArgsConstructor
+    public class SerializationConnectionCallback implements ConnectionCallback<ByteBufferFactory>, MessageDeserializer {
+        private final ReadersVisitor callback;
+
+        @Override
+        public void handleCloseConnection(Connection connection) {
+            callback.handleCloseConnection(getConnection(connection));
+        }
+
+        @Override
+        public void handleNewConnection(Connection connection) {
+            callback.handleNewConnection(attach(callback, connection));
+        }
+
+        @Override
+        public void handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
+            var wrapper = getConnection(connection);
+            wrapper.write(byteBufferFactory);
+        }
+
+        @Override
+        public void onMessage(Connection connection, ByteBuffer buffer) {
+            var wrapper = getConnection(connection);
+            wrapper.onMessage(buffer);
+        }
+    }
+
+    private Connection attach(ReadersVisitor callback, Connection connection) {
         var wrapper = new SerializingConnection<>(
                 connection,
                 callback,
-                deserializer,
+                deserializerFactory.apply(callback),
                 builderFactoryFactory.get(),
                 "W|" + connection.getName());
         connection.set(wrapper);
         return wrapper;
     }
 
-    private void handleMessage(Connection<ByteBuffer> connection, ByteBuffer buffer) {
-        var wrapper = getConnection(connection);
-        wrapper.onMessage(buffer);
-    }
-
-    private void handleWriting(Connection<ByteBuffer> connection, ByteBufferFactory byteBufferFactory) {
-        var wrapper = getConnection(connection);
-        wrapper.write(byteBufferFactory);
-    }
-
     @SuppressWarnings("unchecked")
-    private SerializingConnection<T, BuilderFactory> getConnection(Connection<ByteBuffer> connection) {
-        return (SerializingConnection<T, BuilderFactory>) connection.get();
+    private SerializingConnection<Consumer<ReadersVisitor>, BuilderFactory> getConnection(Connection connection) {
+        return (SerializingConnection<Consumer<ReadersVisitor>, BuilderFactory>) connection.get();
     }
 
 
     private static class SerializingConnection<T, BuilderFactory extends ByteBufferHolder>
             extends ConnectionBase<T> {
-        private final Connection<ByteBuffer> connection;
-        private final ConnectionCallback<T, ? super BuilderFactory> callback;
-        private final MessageDeserializer<T> deserializer;
+        private final Connection connection;
+        private final ConnectionCallback<? super BuilderFactory> callback;
+        private final MessageDeserializer deserializer;
         private final BuilderFactory builderFactory;
 
         private final String name;
 
         public SerializingConnection(
-                Connection<ByteBuffer> connection,
-                ConnectionCallback<T, ? super BuilderFactory> callback,
-                MessageDeserializer<T> deserializer,
+                Connection connection,
+                ConnectionCallback<? super BuilderFactory> callback,
+                MessageDeserializer deserializer,
                 BuilderFactory builderFactory,
                 String name) {
             this.connection = connection;
@@ -89,14 +104,8 @@ public class SerializationConnectionCallbackFactory<T, BuilderFactory extends By
 
         public void onMessage(ByteBuffer buffer) {
             while (buffer.hasRemaining()) {
-                if (deserializer.onMessage(buffer)) {
-                    send(deserializer.getValue());
-                }
+                deserializer.onMessage(SerializingConnection.this, buffer);
             }
-        }
-
-        private void send(T message) {
-            callback.handleMessage(SerializingConnection.this, message);
         }
     }
 }

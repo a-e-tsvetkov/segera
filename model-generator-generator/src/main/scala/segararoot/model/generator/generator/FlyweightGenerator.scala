@@ -2,10 +2,11 @@ package segararoot.model.generator.generator
 
 import segararoot.generator.ast._
 import segararoot.model.generator.generator.lib._
+import segeraroot.connectivity.{Connection, ConnectionCallback}
 
 import scala.collection.JavaConverters._
 
-class FliweightGenerator(basePackage: String) {
+class FlyweightGenerator(basePackage: String) {
 
 
   def generate(ast: AST): java.util.Collection[CompilationUnit] = {
@@ -47,9 +48,15 @@ class FliweightGenerator(basePackage: String) {
 
   private def generateReaderVisitor(readersInterfaces: Seq[InterfaceBuilder], basePackage: String) = {
     val factory = InterfaceBuilder(basePackage, "ReadersVisitor")
+    val connection = classOf[Connection]
+    val connectionCallback = classOf[ConnectionCallback[_]]
+    factory.addGeneric("BuilderFactory")
+    factory.addImplements(TypeRef(connectionCallback).addGenericParams("BuilderFactory"))
+
 
     readersInterfaces.foreach { reader =>
       val methodDecl = factory.appendMethod("visit", VoidType)
+      methodDecl.addParam("connection", TypeRef(connection))
       methodDecl.addParam("value", reader.toTypeRef)
       methodDecl.isDefault = true
       methodDecl.body = ""

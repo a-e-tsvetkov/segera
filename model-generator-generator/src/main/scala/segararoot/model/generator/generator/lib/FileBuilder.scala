@@ -27,8 +27,34 @@ class FileBuilder() {
     b.append("{").append("\n")
   }
 
-  def interfaceHeader(name: String): Unit = {
-    b.append("interface ").append(name).append("{").append("\n")
+  def interfaceHeader(name: String,
+                      generics: Seq[String] = Seq(),
+                      implements: Seq[TypeRef] = Seq()): Unit = {
+    b.append("interface ").append(name)
+    if (generics.nonEmpty) {
+      var first = true
+      b.append("<")
+      generics.foreach { g =>
+        if (!first) {
+          b.append(", ")
+          first = false
+        }
+        b.append(g)
+      }
+      b.append(">")
+    }
+    if (implements.nonEmpty) {
+      var first = true
+      b.append(" extends ")
+      implements.foreach { im =>
+        if (!first) {
+          b.append(", ")
+          first = false
+        }
+        b.append(im.toJavaCode)
+      }
+    }
+    b.append("{").append("\n")
   }
 
   def enumHeader(name: String): Unit = {
@@ -65,6 +91,7 @@ class FileBuilder() {
     params.foreach { p =>
       if (!first) {
         b.append(", ")
+      } else {
         first = false
       }
       renderer(

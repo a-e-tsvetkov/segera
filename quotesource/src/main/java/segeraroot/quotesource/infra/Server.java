@@ -13,19 +13,17 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 
 @Slf4j
-public class Server {
+public class Server<T extends ConnectionCallback<ByteBufferFactory> & MessageDeserializer> {
     private final int port;
-    private final ConnectionCallback<ByteBuffer, ByteBufferFactory> connectionCallback;
+    private final T connectionCallback;
     private Selector selector;
     private ByteBuffer buffer;
 
-    public Server(int port, ConnectionCallback<ByteBuffer, ByteBufferFactory> connectionCallback) {
+    public Server(int port, T connectionCallback) {
         this.port = port;
         this.connectionCallback = connectionCallback;
     }
@@ -62,10 +60,10 @@ public class Server {
                         if (key.isAcceptable()) {
                             onAccept(key);
                         } else if (key.isReadable()) {
-                            var handler = (ConnectionHandler) key.attachment();
+                            var handler = getHandler(key);
                             handler.read(key);
                         } else if (key.isWritable()) {
-                            var handler = (ConnectionHandler) key.attachment();
+                            var handler = getHandler(key);
                             handler.doWrite(key);
                         }
                     }
@@ -74,6 +72,11 @@ public class Server {
         } catch (IOException e) {
             log.error("Exception in await loop", e);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ConnectionHandler getHandler(SelectionKey key) {
+        return (ConnectionHandler) key.attachment();
     }
 
     private void onClose(ConnectionHandler handler) {
@@ -98,7 +101,6 @@ public class Server {
         private final SelectionKey key;
         private final SocketChannel channel;
 
-        private final Queue<ByteBuffer> writeQueue = new ConcurrentLinkedQueue<>();
         private volatile boolean headerIsInBuffer = false;
 
         public ConnectionHandler(SelectionKey key) {
@@ -120,6 +122,7 @@ public class Server {
                     return;
                 }
                 buffer.flip();
+                connectionCallback.onMessage(this, buffer);
             } catch (IOException e) {
                 try {
                     channel.close();
@@ -128,10 +131,7 @@ public class Server {
                 }
                 key.cancel();
                 onClose(this);
-                return;
             }
-
-            connectionCallback.handleMessage(this, buffer);
         }
 
 
@@ -148,13 +148,6 @@ public class Server {
                 socketChannel.write(buffer);
                 assert buffer.remaining() == 0;
                 headerIsInBuffer = true;
-            }
-            ByteBuffer messageWrapper;
-            while ((messageWrapper = writeQueue.poll()) != null) {
-                log.trace("Writing message: {}", socketChannel.getRemoteAddress());
-
-                socketChannel.write(messageWrapper);
-                assert buffer.remaining() == 0;
             }
             connectionCallback.handleWriting(this, this);
             key.interestOps(SelectionKey.OP_READ);

@@ -1,8 +1,6 @@
 package segeraroot.quotesource;
 
-import segeraroot.connectivity.ConnectionCallback;
-import segeraroot.quotemodel.BuilderFactory;
-import segeraroot.quotemodel.Message;
+import segeraroot.quotemodel.ReadersVisitor;
 import segeraroot.quotesource.infra.SerializationConnectionCallbackFactory;
 import segeraroot.quotesource.infra.Server;
 
@@ -10,9 +8,9 @@ import java.util.Arrays;
 
 public class ServerMain {
     public static void main(String[] args) {
-        var quoteDispatcher = new QuoteDispatcher();
-        var serializer = new SerializationConnectionCallbackFactory<>(
-                new QuoteMessageDeserializer(),
+        var quoteDispatcher = new QuoteDispatcher<BuilderFactoryImpl>();
+        var serializer = new SerializationConnectionCallbackFactory<BuilderFactoryImpl, ReadersVisitor<BuilderFactoryImpl>>(
+                QuoteMessageDeserializer::new,
                 BuilderFactoryImpl::new
         );
 
@@ -21,8 +19,7 @@ public class ServerMain {
             quoteGenerator.start();
         }
 
-        ConnectionCallback<Message, BuilderFactory> callback = quoteDispatcher.getCallback();
-        var server = new Server(9000, serializer.handleMessage(callback));
+        var server = new Server<>(9000, serializer.handleMessage(quoteDispatcher));
         server.start();
 
     }

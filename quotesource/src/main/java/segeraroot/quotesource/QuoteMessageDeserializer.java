@@ -1,18 +1,29 @@
 package segeraroot.quotesource;
 
-import segeraroot.quotemodel.Message;
+import segeraroot.connectivity.Connection;
 import segeraroot.quotemodel.MessageType;
 import segeraroot.quotemodel.QuoteConstant;
+import segeraroot.quotemodel.ReadersVisitor;
 import segeraroot.quotemodel.messages.Quote;
 import segeraroot.quotemodel.messages.Subscribe;
 import segeraroot.quotemodel.messages.Unsubscribe;
+import segeraroot.quotemodel.writers.QuoteReader;
+import segeraroot.quotemodel.writers.SubscribeReader;
+import segeraroot.quotemodel.writers.UnsubscribeReader;
 import segeraroot.quotesource.infra.MessageDeserializer;
+import segeraroot.quotesource.infra.MessageDeserializerComponent;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
+public class QuoteMessageDeserializer implements MessageDeserializer {
 
+
+    private final ReadersVisitor<?> callback;
+
+    public QuoteMessageDeserializer(ReadersVisitor<?> callback) {
+        this.callback = callback;
+    }
 
     private enum ReadingState {
         START,
@@ -20,42 +31,47 @@ public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
     }
 
     private ReadingState readingState = ReadingState.START;
-    private MessageDeserializer<? extends Message> messageDeserializer;
-    private final MessageDeserializer<? extends Message>[] messageDeserializers;
+    private MessageType messageType;
 
-    {
-        //noinspection unchecked
-        messageDeserializers = new MessageDeserializer[]{
-                new QuoteDeserializer(),
-                new SubscribeDeserializer(),
-                new UnsubscribeDeserializer(),
-        };
-    }
-
+    private final QuoteDeserializer quoteDeserializer = new QuoteDeserializer();
+    private final SubscribeDeserializer subscribeDeserializer = new SubscribeDeserializer();
+    private final UnsubscribeDeserializer unsubscribeDeserializer = new UnsubscribeDeserializer();
 
     @Override
-    public boolean onMessage(ByteBuffer buffer) {
+    public void onMessage(Connection connection, ByteBuffer buffer) {
         switch (readingState) {
             case START:
                 MessageType messageType = toType(buffer.get());
                 readingState = ReadingState.IN_MESSAGE;
-                messageDeserializer = messageDeserializers[messageType.ordinal()];
-                messageDeserializer.reset();
+                this.messageType = messageType;
                 break;
             case IN_MESSAGE:
-                if (messageDeserializer.onMessage(buffer)) {
-                    readingState = ReadingState.START;
-                    return true;
+                switch (this.messageType) {
+                    case Quote:
+                        if (quoteDeserializer.onMessage(buffer)) {
+                            readingState = ReadingState.START;
+                            callback.visit(connection, quoteDeserializer);
+                            quoteDeserializer.reset();
+                        }
+                        break;
+                    case Subscribe:
+                        if (subscribeDeserializer.onMessage(buffer)) {
+                            readingState = ReadingState.START;
+                            callback.visit(connection, subscribeDeserializer);
+                            subscribeDeserializer.reset();
+                        }
+                        break;
+                    case Unsubscribe:
+                        if (unsubscribeDeserializer.onMessage(buffer)) {
+                            readingState = ReadingState.START;
+                            callback.visit(connection, unsubscribeDeserializer);
+                            unsubscribeDeserializer.reset();
+                        }
+                        break;
                 }
                 break;
         }
 
-        return false;
-    }
-
-    @Override
-    public Message getValue() {
-        return messageDeserializer.getValue();
     }
 
     private MessageType toType(byte b) {
@@ -71,11 +87,11 @@ public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
         }
     }
 
-    private static class QuoteDeserializer implements MessageDeserializer<Quote> {
-        private final MessageDeserializer<byte[]> symbol = new ByteArrayDeserializer(QuoteConstant.SYMBOL_LENGTH);
-        private final MessageDeserializer<Long> volume = new LongDeserializer();
-        private final MessageDeserializer<Long> price = new LongDeserializer();
-        private final MessageDeserializer<Long> date = new LongDeserializer();
+    private static class QuoteDeserializer implements MessageDeserializerComponent<Quote>, QuoteReader {
+        private final ByteArrayDeserializer symbol = new ByteArrayDeserializer(QuoteConstant.SYMBOL_LENGTH);
+        private final LongDeserializer volume = new LongDeserializer();
+        private final LongDeserializer price = new LongDeserializer();
+        private final LongDeserializer date = new LongDeserializer();
 
         private int position;
 
@@ -115,6 +131,26 @@ public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
         }
 
         @Override
+        public byte[] symbol() {
+            return symbol.getValue();
+        }
+
+        @Override
+        public long volume() {
+            return volume.getValue();
+        }
+
+        @Override
+        public long price() {
+            return price.getValue();
+        }
+
+        @Override
+        public long date() {
+            return date.getValue();
+        }
+
+        @Override
         public void reset() {
             position = 0;
             symbol.reset();
@@ -124,62 +160,63 @@ public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
         }
     }
 
-    private static class SubscribeDeserializer implements MessageDeserializer<Subscribe> {
-
-        byte[] symbol = new byte[QuoteConstant.SYMBOL_LENGTH];
-        private int position;
+    private static class SubscribeDeserializer implements MessageDeserializerComponent<Subscribe>, SubscribeReader {
+        private final ByteArrayDeserializer symbol = new ByteArrayDeserializer(QuoteConstant.SYMBOL_LENGTH);
 
         @Override
         public boolean onMessage(ByteBuffer buffer) {
-            int length = Math.min(symbol.length - position, buffer.remaining());
-            buffer.get(symbol, position, length);
-            position += length;
-            return position == symbol.length;
+            return symbol.onMessage(buffer);
         }
 
         @Override
         public Subscribe getValue() {
             return Subscribe.builder()
-                    .symbol(Arrays.copyOf(symbol, symbol.length))
+                    .symbol(Arrays.copyOf(symbol.getValue(), symbol.length))
                     .build();
         }
 
         @Override
+        public byte[] symbol() {
+            return symbol.getValue();
+        }
+
+        @Override
         public void reset() {
-            position = 0;
+            symbol.reset();
         }
     }
 
-    private static class UnsubscribeDeserializer implements MessageDeserializer<Unsubscribe> {
-        byte[] symbol = new byte[QuoteConstant.SYMBOL_LENGTH];
-        private int position;
+    private static class UnsubscribeDeserializer implements MessageDeserializerComponent<Unsubscribe>, UnsubscribeReader {
+        private final ByteArrayDeserializer symbol = new ByteArrayDeserializer(QuoteConstant.SYMBOL_LENGTH);
+
 
         @Override
         public boolean onMessage(ByteBuffer buffer) {
-            int length = Math.min(symbol.length - position, buffer.remaining());
-            buffer.get(symbol, position, length);
-            position += length;
-            return position == symbol.length;
+            return symbol.onMessage(buffer);
         }
 
         @Override
         public Unsubscribe getValue() {
             return Unsubscribe.builder()
-                    .symbol(Arrays.copyOf(symbol, symbol.length))
+                    .symbol(Arrays.copyOf(symbol.getValue(), symbol.length))
                     .build();
         }
 
         @Override
+        public byte[] symbol() {
+            return symbol.getValue();
+        }
+
+        @Override
         public void reset() {
-            position = 0;
+            symbol.reset();
         }
     }
 
-    static class LongDeserializer implements MessageDeserializer<Long> {
+    static class LongDeserializer {
         private int position;
         private long value;
 
-        @Override
         public boolean onMessage(ByteBuffer buffer) {
             while (buffer.hasRemaining()) {
                 byte b = buffer.get();
@@ -193,35 +230,37 @@ public class QuoteMessageDeserializer implements MessageDeserializer<Message> {
             return false;
         }
 
-        @Override
-        public Long getValue() {
+        public long getValue() {
             return value;
         }
 
-        @Override
         public void reset() {
             position = 0;
         }
     }
 
 
-    private static class ByteArrayDeserializer implements MessageDeserializer<byte[]> {
-        private int position;
+    private static class ByteArrayDeserializer {
+        private final int length;
+        private final byte[] bytes;
+        private int position = 0;
 
         public ByteArrayDeserializer(int symbolLength) {
+            length = symbolLength;
+            bytes = new byte[length];
         }
 
-        @Override
         public boolean onMessage(ByteBuffer buffer) {
-            return false;
+            int length = Math.min(bytes.length - position, buffer.remaining());
+            buffer.get(bytes, position, length);
+            position += length;
+            return position == bytes.length;
         }
 
-        @Override
         public byte[] getValue() {
-            return new byte[0];
+            return bytes;
         }
 
-        @Override
         public void reset() {
             position = 0;
         }
