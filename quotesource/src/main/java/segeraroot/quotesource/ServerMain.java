@@ -1,6 +1,7 @@
 package segeraroot.quotesource;
 
 import segeraroot.quotemodel.ReadersVisitor;
+import segeraroot.quotemodel.impl.BuilderFactoryImpl;
 import segeraroot.quotesource.infra.SerializationConnectionCallbackFactory;
 import segeraroot.quotesource.infra.Server;
 

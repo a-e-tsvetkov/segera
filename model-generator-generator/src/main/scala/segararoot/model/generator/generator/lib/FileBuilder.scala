@@ -19,6 +19,7 @@ class FileBuilder() {
       implements.foreach { im =>
         if (!first) {
           b.append(", ")
+        } else {
           first = false
         }
         b.append(im.toJavaCode)
@@ -69,8 +70,13 @@ class FileBuilder() {
     b.append(name).append(",\n")
   }
 
-  def field(name: String, typeRef: TypeRef): Unit = {
-    b.append(typeRef.toJavaCode).append(" ").append(name).append(";\n")
+  def field(name: String, typeRef: TypeRef, value: String = null): Unit = {
+    b.append(typeRef.toJavaCode).append(" ").append(name)
+    if (value != null) {
+      b.append("=").append(value)
+    }
+    b.append(";\n")
+
   }
 
   def methodHeader(name: String, typeRef: TypeRef): Unit = {

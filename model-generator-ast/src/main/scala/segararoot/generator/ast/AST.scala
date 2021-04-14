@@ -2,7 +2,9 @@ package segararoot.generator.ast
 
 case class AST(messageDef: Seq[Message])
 
-case class Message(name: String, fieldDef: Seq[MessageField])
+case class Message(name: String, fieldDef: Seq[MessageField]) {
+  var number: Integer = _
+}
 
 case class MessageField(name: String, dataType: DataType)
 

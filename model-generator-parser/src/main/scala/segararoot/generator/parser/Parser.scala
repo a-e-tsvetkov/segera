@@ -10,7 +10,15 @@ object Parser {
     val tokens = LexerInt.parse(text)
     ParserInt.parse(tokens) match {
       case Left(value) => value
-      case Right(value) => ParseResultSuccess(value)
+      case Right(value) =>
+        process(value)
+        ParseResultSuccess(value)
+    }
+  }
+
+  private def process(value: AST): Unit = {
+    value.messageDef.zipWithIndex.foreach { case (m, i) =>
+      m.number = i
     }
   }
 }

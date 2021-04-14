@@ -15,8 +15,8 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
   private val fields: mutable.ListBuffer[FieldDecl] = mutable.ListBuffer()
   private val methods: mutable.ListBuffer[MethodDecl] = mutable.ListBuffer()
   private val innerClasses: mutable.ListBuffer[ClassBuilder] = mutable.ListBuffer()
-  private val isStatic: Boolean = true
-  private val visibility: VisibilityModifier = VisibilityPublic
+  var isStatic: Boolean = true
+  var visibility: VisibilityModifier = VisibilityPublic
 
   override def toTypeRef: ReferenceType = {
     ReferenceType(name)
@@ -68,7 +68,7 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
       b.modifier(field.visibility.toJavaCode)
       if (field.isFinal)
         b.modifier("final")
-      b.field(field.name, field.typeRef)
+      b.field(field.name, field.typeRef, field.valueString)
     }
     methods.foreach { method =>
       b.modifier(method.visibility.toJavaCode)
@@ -98,6 +98,13 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
 case class FieldDecl(name: String, typeRef: TypeRef) {
   var isFinal: Boolean = false
   var visibility: VisibilityModifier = VisibilityPrivate
+  var valueString: String = _
+
+  def value(callback: ExpressonBuilder => Unit): Unit = {
+    val b = new StringBuilder
+    callback(new ExpressonBuilder(b))
+    valueString = b.mkString
+  }
 }
 
 case class ParamDecl(name: String, typeRef: TypeRef)
