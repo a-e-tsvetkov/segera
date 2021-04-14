@@ -1,6 +1,7 @@
 package segeraroot.quotesource;
 
 import org.junit.jupiter.api.Test;
+import segeraroot.connectivity.util.LongDeserializer;
 
 import java.nio.ByteBuffer;
 
@@ -11,7 +12,7 @@ class QuoteMessageDeserializerComponentTest {
 
     @Test
     void longDeserializerOnMessage() {
-        QuoteMessageDeserializer.LongDeserializer deserializer = new QuoteMessageDeserializer.LongDeserializer();
+        LongDeserializer deserializer = new LongDeserializer();
 
         ByteBuffer buffer = ByteBuffer.allocate(8);
         long value = 1234567890L;

@@ -1,6 +1,9 @@
 package segeraroot.quotesource;
 
 import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.util.ByteArrayDeserializer;
+import segeraroot.connectivity.util.LongDeserializer;
+import segeraroot.connectivity.util.MessageDeserializerBase;
 import segeraroot.quotemodel.MessageType;
 import segeraroot.quotemodel.QuoteConstant;
 import segeraroot.quotemodel.ReadersVisitor;
@@ -10,71 +13,49 @@ import segeraroot.quotemodel.messages.Unsubscribe;
 import segeraroot.quotemodel.writers.QuoteReader;
 import segeraroot.quotemodel.writers.SubscribeReader;
 import segeraroot.quotemodel.writers.UnsubscribeReader;
-import segeraroot.quotesource.infra.MessageDeserializer;
 import segeraroot.quotesource.infra.MessageDeserializerComponent;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
-public class QuoteMessageDeserializer implements MessageDeserializer {
+public class QuoteMessageDeserializer
+        extends MessageDeserializerBase<ReadersVisitor<?>, MessageType> {
 
-
-    private final ReadersVisitor<?> callback;
 
     public QuoteMessageDeserializer(ReadersVisitor<?> callback) {
-        this.callback = callback;
+        super(callback);
     }
-
-    private enum ReadingState {
-        START,
-        IN_MESSAGE
-    }
-
-    private ReadingState readingState = ReadingState.START;
-    private MessageType messageType;
 
     private final QuoteDeserializer quoteDeserializer = new QuoteDeserializer();
     private final SubscribeDeserializer subscribeDeserializer = new SubscribeDeserializer();
     private final UnsubscribeDeserializer unsubscribeDeserializer = new UnsubscribeDeserializer();
 
-    @Override
-    public void onMessage(Connection connection, ByteBuffer buffer) {
-        switch (readingState) {
-            case START:
-                MessageType messageType = toType(buffer.get());
-                readingState = ReadingState.IN_MESSAGE;
-                this.messageType = messageType;
+    protected void parseBody(Connection connection, ByteBuffer buffer) {
+        switch (this.messageType) {
+            case Quote:
+                if (quoteDeserializer.onMessage(buffer)) {
+                    readingState = ReadingState.START;
+                    callback.visit(connection, quoteDeserializer);
+                    quoteDeserializer.reset();
+                }
                 break;
-            case IN_MESSAGE:
-                switch (this.messageType) {
-                    case Quote:
-                        if (quoteDeserializer.onMessage(buffer)) {
-                            readingState = ReadingState.START;
-                            callback.visit(connection, quoteDeserializer);
-                            quoteDeserializer.reset();
-                        }
-                        break;
-                    case Subscribe:
-                        if (subscribeDeserializer.onMessage(buffer)) {
-                            readingState = ReadingState.START;
-                            callback.visit(connection, subscribeDeserializer);
-                            subscribeDeserializer.reset();
-                        }
-                        break;
-                    case Unsubscribe:
-                        if (unsubscribeDeserializer.onMessage(buffer)) {
-                            readingState = ReadingState.START;
-                            callback.visit(connection, unsubscribeDeserializer);
-                            unsubscribeDeserializer.reset();
-                        }
-                        break;
+            case Subscribe:
+                if (subscribeDeserializer.onMessage(buffer)) {
+                    readingState = ReadingState.START;
+                    callback.visit(connection, subscribeDeserializer);
+                    subscribeDeserializer.reset();
+                }
+                break;
+            case Unsubscribe:
+                if (unsubscribeDeserializer.onMessage(buffer)) {
+                    readingState = ReadingState.START;
+                    callback.visit(connection, unsubscribeDeserializer);
+                    unsubscribeDeserializer.reset();
                 }
                 break;
         }
-
     }
 
-    private MessageType toType(byte b) {
+    protected MessageType toType(byte b) {
         switch (b) {
             case 0:
                 return MessageType.Quote;
@@ -121,16 +102,6 @@ public class QuoteMessageDeserializer implements MessageDeserializer {
         }
 
         @Override
-        public Quote getValue() {
-            return Quote.builder()
-                    .symbol(symbol.getValue())
-                    .price(price.getValue())
-                    .volume(volume.getValue())
-                    .date(date.getValue())
-                    .build();
-        }
-
-        @Override
         public byte[] symbol() {
             return symbol.getValue();
         }
@@ -169,13 +140,6 @@ public class QuoteMessageDeserializer implements MessageDeserializer {
         }
 
         @Override
-        public Subscribe getValue() {
-            return Subscribe.builder()
-                    .symbol(Arrays.copyOf(symbol.getValue(), symbol.length))
-                    .build();
-        }
-
-        @Override
         public byte[] symbol() {
             return symbol.getValue();
         }
@@ -196,13 +160,6 @@ public class QuoteMessageDeserializer implements MessageDeserializer {
         }
 
         @Override
-        public Unsubscribe getValue() {
-            return Unsubscribe.builder()
-                    .symbol(Arrays.copyOf(symbol.getValue(), symbol.length))
-                    .build();
-        }
-
-        @Override
         public byte[] symbol() {
             return symbol.getValue();
         }
@@ -213,56 +170,5 @@ public class QuoteMessageDeserializer implements MessageDeserializer {
         }
     }
 
-    static class LongDeserializer {
-        private int position;
-        private long value;
 
-        public boolean onMessage(ByteBuffer buffer) {
-            while (buffer.hasRemaining()) {
-                byte b = buffer.get();
-                value = value << 8;
-                value |= b & 0xffL;
-                position++;
-                if (position == 8) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public long getValue() {
-            return value;
-        }
-
-        public void reset() {
-            position = 0;
-        }
-    }
-
-
-    private static class ByteArrayDeserializer {
-        private final int length;
-        private final byte[] bytes;
-        private int position = 0;
-
-        public ByteArrayDeserializer(int symbolLength) {
-            length = symbolLength;
-            bytes = new byte[length];
-        }
-
-        public boolean onMessage(ByteBuffer buffer) {
-            int length = Math.min(bytes.length - position, buffer.remaining());
-            buffer.get(bytes, position, length);
-            position += length;
-            return position == bytes.length;
-        }
-
-        public byte[] getValue() {
-            return bytes;
-        }
-
-        public void reset() {
-            position = 0;
-        }
-    }
 }

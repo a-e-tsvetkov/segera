@@ -2,7 +2,8 @@ package segararoot.model.generator.generator
 
 import segararoot.generator.ast._
 import segararoot.model.generator.generator.lib.{InterfaceBuilder, _}
-import segeraroot.connectivity.{ByteBufferFactory, ByteBufferHolder, Connection, ConnectionCallback}
+import segeraroot.connectivity.util.{ByteBufferFactory, ByteBufferHolder}
+import segeraroot.connectivity.{Connection, ConnectionCallback}
 
 import java.nio.ByteBuffer
 import java.util.function.Consumer

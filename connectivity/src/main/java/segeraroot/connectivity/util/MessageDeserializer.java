@@ -1,4 +1,4 @@
-package segeraroot.quotesource.infra;
+package segeraroot.connectivity.util;
 
 import segeraroot.connectivity.Connection;
 

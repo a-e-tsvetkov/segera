@@ -1,9 +1,10 @@
 package segeraroot.quotesource.infra;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.ByteBufferFactory;
 import segeraroot.connectivity.ConnectionCallback;
 import segeraroot.connectivity.Protocol;
+import segeraroot.connectivity.util.ByteBufferFactory;
+import segeraroot.connectivity.util.MessageDeserializer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

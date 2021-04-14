@@ -1,4 +1,4 @@
-package segeraroot.connectivity;
+package segeraroot.connectivity.util;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;

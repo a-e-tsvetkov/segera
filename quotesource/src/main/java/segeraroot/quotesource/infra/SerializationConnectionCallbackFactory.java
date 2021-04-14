@@ -1,10 +1,11 @@
 package segeraroot.quotesource.infra;
 
 import lombok.AllArgsConstructor;
-import segeraroot.connectivity.ByteBufferFactory;
-import segeraroot.connectivity.ByteBufferHolder;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.ConnectionCallback;
+import segeraroot.connectivity.util.ByteBufferFactory;
+import segeraroot.connectivity.util.ByteBufferHolder;
+import segeraroot.connectivity.util.MessageDeserializer;
 
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
