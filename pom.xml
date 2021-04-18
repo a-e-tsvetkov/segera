@@ -53,6 +53,8 @@
         <module>model-generator-generator</module>
         <module>model-generator-plugin</module>
         <module>model-generator-plugin-test</module>
+        <module>connectivity-lib</module>
+        <module>quote-nio-consumer</module>
     </modules>
 
 

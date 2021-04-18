@@ -1,4 +1,4 @@
-package segeraroot.quotesource.infra;
+package segeraroot.connectivity.impl;
 
 import lombok.AllArgsConstructor;
 import segeraroot.connectivity.Connection;

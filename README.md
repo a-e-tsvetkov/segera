@@ -18,3 +18,4 @@ I want to create simple application and show how it can be done in incremental s
 * V9 - Model generator: Flyweight interfaces generator
 * V10 - Switch server to Flyweight interfaces
 * V11 - Model generator: generate Flyweight implementations
+* V11 - Create NIO based client 
