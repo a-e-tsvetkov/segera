@@ -55,6 +55,8 @@
         <module>model-generator-plugin-test</module>
         <module>connectivity-lib</module>
         <module>quote-nio-consumer</module>
+        <module>performance-counter</module>
+        <module>performance-counter-test</module>
     </modules>
 
 
