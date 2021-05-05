@@ -6,7 +6,6 @@ import segeraroot.connectivity.util._
 import segeraroot.connectivity.{Connection, ConnectionCallback}
 
 import java.nio.ByteBuffer
-import java.util.function.Consumer
 import scala.collection.JavaConverters._
 
 class FlyweightGenerator(basePackage: String) {
@@ -251,21 +250,19 @@ class FlyweightGenerator(basePackage: String) {
   private def builderImplGenerator(factory: ClassBuilder,
                                    builder: InterfaceBuilder,
                                    message: Message) = {
-    val consumerRef = TypeRef(classOf[Consumer[_]])
-      .addGenericParams(TypeRef(classOf[ByteBuffer])
-        .toJavaCode)
+    val writeCallbackRef = TypeRef(classOf[WriteCallback])
 
     val builderImpl = factory.createInnerClass(builder.name + "Impl")
     builderImpl.addImplements(builder.toTypeRef)
-    builderImpl.addImplements(consumerRef)
+    builderImpl.addImplements(writeCallbackRef)
     builderImpl.isStatic = false
     builderImpl.visibility = VisibilityPrivate
 
 
-    val sendMethod = builderImpl.appendMethod("send", VoidType)
+    val sendMethod = builderImpl.appendMethod("send", BooleanType)
     sendMethod.visibility = VisibilityPublic
     sendMethod.body = BodyBuilder()
-      .statement { builder =>
+      .returnStatement { builder =>
         builder.invoke("write") { builder =>
           builder.variable("byteBufferFactory")
         } { builder =>
@@ -295,11 +292,22 @@ class FlyweightGenerator(basePackage: String) {
       setterMethod.body = bb.getText
     }
 
-    val acceptMethod = builderImpl.appendMethod("accept", VoidType)
+    val acceptMethod = builderImpl.appendMethod("tryWrite", BooleanType)
     acceptMethod.visibility = VisibilityPublic
     acceptMethod.addParam("buffer", TypeRef(classOf[ByteBuffer]))
+
+    val size = 1 + message.fieldDef.map(x => x.dataType.size).sum
     val acceptBB = BodyBuilder()
     acceptBB.statement { b =>
+      b.ifStatement { b =>
+        b.compare("<") { b =>
+          b.invoke("capacity") { b => b.variable("buffer") } { _ => }
+        } { b =>
+          b.raw(size.toString)
+        }
+      } { b =>
+        b.returnStatement("false")
+      }
       b.invoke("put") { b =>
         b.variable("buffer")
       } { b =>
@@ -318,6 +326,8 @@ class FlyweightGenerator(basePackage: String) {
           invokePut(acceptBB, "buffer", "put", fieldDef.name)
       }
     }
+    acceptBB.returnStatement("true")
+
     acceptMethod.body = acceptBB.getText
 
     builderImpl
@@ -379,7 +389,7 @@ class FlyweightGenerator(basePackage: String) {
       builder.appendMethod(message.name, builder.toTypeRef)
         .addParam("value", TypeRef(message.dataType))
     }
-    builder.appendMethod("send", VoidType)
+    builder.appendMethod("send", BooleanType)
 
     builder
   }

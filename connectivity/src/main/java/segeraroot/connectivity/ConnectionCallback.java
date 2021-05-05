@@ -5,5 +5,9 @@ public interface ConnectionCallback<BuilderFactory> {
 
     void handleNewConnection(Connection connection);
 
-    void handleWriting(Connection connection, BuilderFactory builderFactory);
+    WritingResult handleWriting(Connection connection, BuilderFactory builderFactory);
+
+    enum WritingResult {
+        CONTINUE, DONE
+    }
 }

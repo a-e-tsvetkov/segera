@@ -6,15 +6,17 @@ import segeraroot.connectivity.ConnectionCallback;
 import segeraroot.connectivity.Protocol;
 import segeraroot.connectivity.util.ByteBufferFactory;
 import segeraroot.connectivity.util.MessageDeserializer;
+import segeraroot.connectivity.util.WriteCallback;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> & MessageDeserializer> {
@@ -126,19 +128,25 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
 
         private final SelectionKey key;
         private final SocketChannel channel;
+        private final SocketAddress remoteAddress;
         private volatile boolean headerRead = false;
         private volatile boolean headerWrite = false;
+        private final AtomicInteger writeVersion = new AtomicInteger();
 
         public ConnectionHandler(SelectionKey key) {
             this.key = key;
             channel = (SocketChannel) key.channel();
-
+            try {
+                remoteAddress = channel.getRemoteAddress();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public void read(SelectionKey key) {
             assert this.key == key;
             try {
-                log.trace("Reading from channel: {}", channel.getRemoteAddress());
+                log.trace("Reading from channel: {}", remoteAddress);
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
                 int length = channel.read(buffer);
@@ -173,9 +181,10 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
 
         public void doWrite(SelectionKey key) throws IOException {
             var socketChannel = (SocketChannel) key.channel();
-            log.trace("Writing to channel: {}", socketChannel.getRemoteAddress());
+            log.trace("Writing to channel: {}", remoteAddress);
+            int writeVersionStart = writeVersion.get();
             if (!headerWrite) {
-                log.trace("Writing header: {}", socketChannel.getRemoteAddress());
+                log.trace("Writing header: {}", remoteAddress);
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
 
@@ -185,30 +194,34 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
                 assert buffer.remaining() == 0;
                 headerWrite = true;
             }
-            connectionCallback.handleWriting(this, this);
-            key.interestOps(SelectionKey.OP_READ);
+            ConnectionCallback.WritingResult success = connectionCallback.handleWriting(this, this);
+            if (success == ConnectionCallback.WritingResult.DONE) {
+                if (writeVersionStart == writeVersion.get())
+                    key.interestOps(SelectionKey.OP_READ);
+            }
         }
 
         @Override
-        public void write(Consumer<ByteBuffer> consumer) {
+        public boolean write(WriteCallback consumer) {
             buffer.position(0);
             buffer.limit(buffer.capacity());
-            consumer.accept(buffer);
+            boolean success = consumer.tryWrite(buffer);
+            if (!success) {
+                return false;
+            }
             buffer.flip();
             try {
                 channel.write(buffer);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            return true;
         }
 
         @Override
         public void startWriting() {
-            try {
-                log.debug("Start writing {}", channel.getRemoteAddress());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            log.trace("Start writing {}", remoteAddress);
+            writeVersion.incrementAndGet();
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();
         }
@@ -219,8 +232,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         }
 
         public void writeHeader() {
-            key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
-            key.selector().wakeup();
+            startWriting();
         }
 
         public void stop() {

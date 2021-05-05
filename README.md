@@ -24,4 +24,5 @@ To make it more fun I decide I won't use any libraries except selected few (logg
 * V10 - Switch server to Flyweight interfaces
 * V11 - Model generator: generate Flyweight implementations
 * V12 - Create NIO based client
-* V13 - Perfotmance counter: Create in process library. 
+* V13 - Performance counter: Create in process library.
+* V14 - Connector: Fix buffer overflow problem 

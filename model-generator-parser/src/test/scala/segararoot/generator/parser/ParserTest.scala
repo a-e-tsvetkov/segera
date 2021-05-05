@@ -49,7 +49,7 @@ class ParserTest extends org.scalatest.FunSuite {
     assert(field.name == "f1")
     assertDataType[DataType_FixedByteArray](field.dataType) { dt =>
       assert(dt.dataType == DataType_Byte)
-      assert(dt.size == 3)
+      assert(dt.length == 3)
     }
   }
 

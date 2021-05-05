@@ -1,7 +1,6 @@
 package segararoot.model.generator.generator.lib
 
-case class BodyBuilder() {
-  private val b = new StringBuilder
+case class BodyBuilder(private val b: StringBuilder = new StringBuilder) {
 
   def getText: String = b.toString()
 
@@ -55,7 +54,6 @@ object ExpressionBuilder {
 }
 
 class ExpressionBuilder(private val b: StringBuilder) {
-
   def newExpression(referenceType: ReferenceType)(callback: ParameterBuilder => Unit): Unit = {
     b.append("new ").append(referenceType.toJavaCode).append("(")
     callback(new ParameterBuilder(b))
@@ -66,6 +64,25 @@ class ExpressionBuilder(private val b: StringBuilder) {
     b.append("new ").append(subType.toJavaCode).append("[")
     callback(new ParameterBuilder(b))
     b.append("]")
+  }
+
+  def compare(operation: String)(left: ExpressionBuilder => Unit)(right: ExpressionBuilder => Unit): Unit = {
+    b.append("(")
+    left(new ExpressionBuilder(b))
+    b.append(")")
+    b.append(operation)
+    b.append("(")
+    right(new ExpressionBuilder(b))
+    b.append(")")
+
+  }
+
+  def ifStatement(expression: ExpressionBuilder => Unit)(thenBody: BodyBuilder => Unit): Unit = {
+    b.append("if(")
+    expression(new ExpressionBuilder(b))
+    b.append(") {\n")
+    thenBody(BodyBuilder(b))
+    b.append("}\n")
   }
 
 

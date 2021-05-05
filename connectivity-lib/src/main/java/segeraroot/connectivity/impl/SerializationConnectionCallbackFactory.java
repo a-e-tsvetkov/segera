@@ -36,9 +36,9 @@ public class SerializationConnectionCallbackFactory<BuilderFactory extends ByteB
         }
 
         @Override
-        public void handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
+        public WritingResult handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
             var wrapper = getConnection(connection);
-            wrapper.write(byteBufferFactory);
+            return wrapper.write(byteBufferFactory);
         }
 
         @Override
@@ -88,9 +88,9 @@ public class SerializationConnectionCallbackFactory<BuilderFactory extends ByteB
         }
 
 
-        public void write(ByteBufferFactory byteBufferFactory) {
+        public ConnectionCallback.WritingResult write(ByteBufferFactory byteBufferFactory) {
             builderFactory.set(byteBufferFactory);
-            callback.handleWriting(SerializingConnection.this, builderFactory);
+            return callback.handleWriting(SerializingConnection.this, builderFactory);
         }
 
         @Override

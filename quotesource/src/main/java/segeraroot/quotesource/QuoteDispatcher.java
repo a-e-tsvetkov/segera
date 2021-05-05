@@ -13,8 +13,10 @@ import segeraroot.quotemodel.writers.UnsubscribeReader;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
 public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implements ReadersVisitor<BuilderFactoryImpl> {
@@ -37,30 +39,38 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
 
     @Override
     public void handleCloseConnection(Connection connection) {
-        onCloseConnection(connection);
+        synchronized (connectionListLock) {
+            connections.remove(connection);
+        }
     }
 
     @Override
     public void handleNewConnection(Connection connection) {
-        onNewConnection(connection);
-    }
-
-    @Override
-    public void handleWriting(Connection connection, BuilderFactory builderFactory) {
-        onWrite(connection, builderFactory);
-    }
-
-    private void onNewConnection(Connection connection) {
         connection.set(new ConnectionContext(connection.getName()));
         synchronized (connectionListLock) {
             connections.add(connection);
         }
     }
 
-    private void onCloseConnection(Connection connectionHandler) {
-        synchronized (connectionListLock) {
-            connections.remove(connectionHandler);
+    @Override
+    public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
+        var context = getConnectionContext(connection);
+        Quote quote;
+        while ((quote = context.peek()) != null) {
+            boolean success = builderFactory.createQuoteBuilder()
+                    .symbol(quote.symbol())
+                    .price(quote.price())
+                    .volume(quote.volume())
+                    .date(quote.date())
+                    .send();
+
+            if (success) {
+                context.poll();
+            } else {
+                return WritingResult.CONTINUE;
+            }
         }
+        return WritingResult.DONE;
     }
 
     @Override
@@ -83,24 +93,10 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
         return (ConnectionContext) connection.get();
     }
 
-    private void onWrite(Connection messageConnection, BuilderFactory builderFactory) {
-        var context = getConnectionContext(messageConnection);
-        context.drainQueue()
-                .forEach(quote ->
-                        builderFactory.createQuoteBuilder()
-                                .symbol(quote.symbol())
-                                .price(quote.price())
-                                .volume(quote.volume())
-                                .date(quote.date())
-                                .send()
-                );
-    }
-
     @RequiredArgsConstructor
     private static class ConnectionContext {
         private final Set<String> subscriptions = new ConcurrentSkipListSet<>();
-        private List<Quote> toSend = new ArrayList<>();
-        private final Object lock = new Object();
+        private final Queue<Quote> toSend = new LinkedBlockingQueue<>();
         @Getter
         private final String name;
 
@@ -116,18 +112,16 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
             return subscriptions.contains(symbol);
         }
 
-        public List<Quote> drainQueue() {
-            synchronized (lock) {
-                List<Quote> tmp = this.toSend;
-                toSend = new ArrayList<>();
-                return tmp;
-            }
+        public Quote peek() {
+            return toSend.peek();
+        }
+
+        public Quote poll() {
+            return toSend.poll();
         }
 
         public void add(Quote quote) {
-            synchronized (lock) {
-                toSend.add(quote);
-            }
+            toSend.add(quote);
         }
     }
 }

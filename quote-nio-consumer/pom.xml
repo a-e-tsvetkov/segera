@@ -41,5 +41,10 @@
             <artifactId>connectivity-lib</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>segera</groupId>
+            <artifactId>performance-counter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

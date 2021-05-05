@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
+import segeraroot.performancecounter.PCCounter;
+import segeraroot.performancecounter.PCHost;
 import segeraroot.quotemodel.BuilderFactory;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.ReadersVisitor;
@@ -17,9 +19,11 @@ import java.util.List;
 @Slf4j
 public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements ReadersVisitor<BuilderFactoryImpl> {
     private final List<String> symbols;
+    private final PCCounter quoteCount;
 
-    public QuoteConsumer(String... symbols) {
+    public QuoteConsumer(PCHost pcHost, String... symbols) {
         this.symbols = Arrays.asList(symbols);
+        quoteCount = pcHost.counter("data.quote.count");
     }
 
     @Override
@@ -35,21 +39,27 @@ public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements
     }
 
     @Override
-    public void handleWriting(Connection connection, BuilderFactory builderFactory) {
+    public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
         var context = getConnectionContext(connection);
         if (!context.isSubscribed()) {
-            symbols.forEach(quote ->
-                    builderFactory.createSubscribeBuilder()
-                            .symbol(QuoteSupport.convert(quote))
-                            .send()
-            );
+            for (String quote : symbols) {
+                boolean success = builderFactory.createSubscribeBuilder()
+                        .symbol(QuoteSupport.convert(quote))
+                        .send();
+                if (!success) {
+                    log.error("Failed to subscribe to {}", quote);
+                }
+            }
         }
         context.setSubscribed(true);
+        //TODO: We are too optimistic here
+        return WritingResult.DONE;
     }
 
 
     @Override
     public void visit(Connection connection, QuoteReader value) {
+        quoteCount.add(1);
         log.info("Quote received: symbol={}, volume={}, price={}, date={}",
                 QuoteSupport.convert(value.symbol()),
                 value.volume(),
