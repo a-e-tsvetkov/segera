@@ -129,13 +129,6 @@ class FlyweightGenerator(basePackage: String) {
         .getText
 
 
-      //      public void reset() {
-      //        position = 0;
-      //        symbol.reset();
-      //        price.reset();
-      //        volume.reset();
-      //        date.reset();
-      //      }
       val resetDecl = deserializer.appendMethod("reset", VoidType)
       resetDecl.visibility = VisibilityPublic
       val resetDeclBB = BodyBuilder()
