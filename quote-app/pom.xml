@@ -2,23 +2,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
         <artifactId>segera-root</artifactId>
         <groupId>segera</groupId>
         <version>1.0</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>quoteconsumer</artifactId>
+    <groupId>segera</groupId>
+    <artifactId>quote-app</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0</version>
 
-    <dependencies>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-        </dependency>
-    </dependencies>
+    <modules>
+        <module>quotesource</module>
+        <module>quoteconsumer</module>
+        <module>quote-model</module>
+        <module>quote-nio-consumer</module>
+    </modules>
 </project>

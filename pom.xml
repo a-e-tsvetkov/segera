@@ -49,9 +49,6 @@
     </dependencyManagement>
 
     <modules>
-        <module>quotesource</module>
-        <module>quoteconsumer</module>
-        <module>quote-model</module>
         <module>connectivity</module>
         <module>model-generator-parser</module>
         <module>model-generator-ast</module>
@@ -59,9 +56,9 @@
         <module>model-generator-plugin</module>
         <module>model-generator-plugin-test</module>
         <module>connectivity-lib</module>
-        <module>quote-nio-consumer</module>
         <module>performance-counter</module>
         <module>performance-counter-test</module>
+        <module>quote-app</module>
     </modules>
 
 
