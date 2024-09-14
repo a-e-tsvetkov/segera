@@ -5,7 +5,7 @@ import segararoot.generator.ast._
 
 import scala.reflect.{ClassTag, classTag}
 
-class ParserTest extends AnyFunSuite {
+class ParserTest extends org.scalatest.funsuite.AnyFunSuite {
   test("parse simple message") {
     val result = Parser.parse("message a {}")
     val ast = assertResult[AST](result)

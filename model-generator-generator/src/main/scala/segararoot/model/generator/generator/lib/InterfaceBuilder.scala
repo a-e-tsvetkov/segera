@@ -25,14 +25,14 @@ case class InterfaceBuilder(packageName: String, name: String) extends TypeBuild
     b.packageStatement(packageName)
 
     b.modifier(visibility.toJavaCode)
-    b.interfaceHeader(name, generics = generics, implements = implements)
+    b.interfaceHeader(name, generics = generics.toSeq, implements = implements.toSeq)
 
     methods.foreach { method =>
       if (method.isDefault) {
         b.modifier("default")
       }
       b.methodHeader(method.name, method.typeRef)
-      b.methodParams(method.params) { (pb, p) =>
+      b.methodParams(method.params.toSeq) { (pb, p) =>
         pb.add(p.name, p.typeRef)
       }
       if (method.isDefault) {

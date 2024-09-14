@@ -65,7 +65,7 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
     if (isStatic && !isTopLevel) {
       b.modifier("static")
     }
-    b.classHeader(name, extend, implements)
+    b.classHeader(name, extend, implements.toSeq)
 
     fields.foreach { field =>
       b.modifier(field.visibility.toJavaCode)
@@ -84,7 +84,7 @@ class ClassBuilder(val packageName: String, parent: ClassBuilder, val name: Stri
       } else {
         b.methodHeader(method.name, method.typeRef)
       }
-      b.methodParams(method.params) { (pb, p) =>
+      b.methodParams(method.params.toSeq) { (pb, p) =>
         pb.add(p.name, p.typeRef)
       }
       b.methodBody(method.body)

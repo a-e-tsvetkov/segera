@@ -41,16 +41,12 @@
 
         <dependency>
             <groupId>org.scala-lang.modules</groupId>
-            <artifactId>scala-parser-combinators_2.12</artifactId>
-            <version>1.1.0</version>
+            <artifactId>scala-parser-combinators_2.13</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.scalatest</groupId>
-            <artifactId>scalatest_2.12</artifactId>
-
-            <version>3.2.18</version>
-            <scope>test</scope>
+            <artifactId>scalatest_2.13</artifactId>
         </dependency>
     </dependencies>
 
@@ -79,7 +75,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.21.0</version>
+                <version>3.3.1</version>
                 <configuration>
                     <skipTests>true</skipTests>
                 </configuration>
@@ -88,7 +84,7 @@
             <plugin>
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <version>2.0.0</version>
+                <version>2.2.0</version>
                 <configuration>
                     <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
                     <junitxml>.</junitxml>
@@ -106,3 +102,4 @@
         </plugins>
     </build>
 </project>
+
