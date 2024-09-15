@@ -1,172 +1,171 @@
 package segararoot.model.generator.generator
 
 import segararoot.generator.ast._
-import segararoot.model.generator.generator.lib.{InterfaceBuilder, _}
+import segararoot.model.generator.generator.lib._
 import segeraroot.connectivity.util._
 import segeraroot.connectivity.{Connection, ConnectionCallback}
 
 import java.nio.ByteBuffer
-import scala.collection.JavaConverters._
 
-class FlyweightGenerator(basePackage: String) {
+class FlyweightGenerator(basePackage: PackageRef) {
 
 
   def generate(ast: AST): java.util.Collection[CompilationUnit] = {
+    val project = ProjectBuilder()
     val readersInterfaces = ast.messageDef
       .map(message =>
-        generateReaderInterface(
-          message,
-          basePackage + ".writers"
+        (message,
+          generateReaderInterface(
+            project,
+            message,
+            basePackage.subNamespace("writers")
+          )
         ))
-    val buildersInterfaces = ast.messageDef
-      .map(message => generateBuilderInterface(
-        message,
-        basePackage + ".readers"
-      ))
 
-    val builderFactoryInterface = generateBuilderFactoryInterface(buildersInterfaces, basePackage)
-    val builderFactoryImplementation = generateBuilderFactoryImplementation(
+    val buildersInterfaces = ast.messageDef
+      .map(message => (
+        message,
+        generateBuilderInterface(
+          project,
+          message,
+          basePackage.subNamespace("readers")
+        )))
+
+    val builderFactoryInterface = generateBuilderFactoryInterface(
+      project,
+      buildersInterfaces,
+      basePackage)
+    generateBuilderFactoryImplementation(
+      project,
       builderFactoryInterface,
-      buildersInterfaces.zip(ast.messageDef),
-      basePackage + ".impl")
-    val readerVisitor = generateReaderVisitor(readersInterfaces, basePackage)
-    val messageDeserializer = generateMessageDeserializer(
+      buildersInterfaces,
+      basePackage.subNamespace("impl"))
+    val readerVisitor = generateReaderVisitor(
+      project,
+      readersInterfaces.map(_._2),
+      basePackage)
+    generateMessageDeserializer(
+      project,
       ast,
       readerVisitor,
-      readersInterfaces.zip(ast.messageDef),
-      basePackage + ".impl")
+      readersInterfaces,
+      basePackage.subNamespace("impl"))
 
-    (readersInterfaces ++
-      buildersInterfaces :+
-      builderFactoryInterface :+
-      readerVisitor :+
-      builderFactoryImplementation :+
-      messageDeserializer)
-      .map { x =>
-        toCompilationUnit(x)
-      }
-      .asJavaCollection
+    project.toCompilationUnits
   }
 
-  private def toCompilationUnit(enum: TypeBuilder) = {
-    CompilationUnit(enum.packageName, enum.name, enum.toJavaCode)
-  }
+  private def generateMessageDeserializer(projectBuilder: ProjectBuilder,
+                                          ast: AST,
+                                          readerVisitor: TypeRef,
+                                          readers: Seq[(Message, TypeRef)],
+                                          basePackage: PackageRef) = {
 
-
-  private def generateMessageDeserializer(ast: AST,
-                                          readerVisitor: InterfaceBuilder,
-                                          readers: Seq[(InterfaceBuilder, Message)],
-                                          basePackage: String) = {
-    val builder = ClassBuilder(basePackage, "MessageDeserializerImpl")
-    val readerVisitorRef = readerVisitor.toTypeRef.addGenericParams("?")
-    builder.setExtends(
-      TypeRef(classOf[MessageDeserializerBase[_]])
-        .addGenericParams(readerVisitorRef))
-
-    val ctor = builder.appendConstructor()
-    ctor.visibility = VisibilityPublic
-    ctor.addParam("callback", readerVisitorRef)
-    ctor.body = BodyBuilder()
-      .statement { b =>
-        b.callSuper { b => b.addParameter("callback") }
-      }
-      .getText
-
-    readers.foreach { case (i, m) =>
-      val deserializer = builder.createInnerClass(m.name + "Deserializer")
-      deserializer.addImplements(i.toTypeRef)
-
-      m.fieldDef.foreach { fieldDef =>
-        val (t, v) = createDeserializer(fieldDef.dataType)
-        val name = deserializer.appendField(fieldDef.name, t)
-        name.valueString = v
-
-
-        val getter = deserializer.appendMethod(fieldDef.name, TypeRef(fieldDef.dataType))
-        getter.visibility = VisibilityPublic
-        getter.body = BodyBuilder()
-          .returnStatement { b =>
-            b.invoke("getValue") { b =>
-              b.variable(fieldDef.name)
-            } { b => }
-          }
-          .getText
-      }
-
-      val deserializerField = builder.appendField("deserializer" + m.name, deserializer.toTypeRef)
-      deserializerField.value { b =>
-        b.newExpression(deserializer.toTypeRef) { b => }
-      }
-
-      deserializer.appendField("position", IntType)
-
-      val onMessageDecl = deserializer.appendMethod("onMessage", BooleanType)
-      onMessageDecl.addParam("buffer", TypeRef(classOf[ByteBuffer]))
-      onMessageDecl.visibility = VisibilityPublic
-      onMessageDecl.body = BodyBuilder()
-        .switch(m.fieldDef.zipWithIndex) { b =>
-          b.variable("position")
-        } { case ((f, i), b) =>
-          b.variable(i.toString)
-        } { case ((f, i), b) =>
-          if (i == m.fieldDef.length - 1) {
-            b.raw(
-              s"""
-                 |if (${f.name}.onMessage(buffer)) {
-                 |  return true;
-                 |}
-               """.stripMargin)
-          } else {
-            b.raw(
-              s"""
-                 |if (${f.name}.onMessage(buffer)) {
-                 |  position = ${i + 1};
-                 |}
-               """.stripMargin)
+    projectBuilder.newCompilationUnit(basePackage, "MessageDeserializerImpl") { b =>
+      val readerVisitorRef = readerVisitor.addGenericParams("?")
+      b.newClassBuilder("MessageDeserializerImpl",
+        extendsClause = Some(JavaType(classOf[MessageDeserializerBase[_]])
+          .addGenericParams(readerVisitorRef))) { b =>
+        b.appendCtor(VisibilityPublic) { b =>
+          b.newParam("callback", readerVisitorRef)
+        } { b =>
+          b.statement { b =>
+            b.callSuper { b => b.addParameter("callback") }
           }
         }
-        .returnStatement("false")
-        .getText
 
+        readers.foreach { case (m, i) =>
+          val deserializer = b.newClassBuilder(m.name + "Deserializer", implements = Seq(i)) { b =>
+            m.fieldDef.foreach { fieldDef =>
+              val (t, v) = createDeserializer(fieldDef.dataType)
+              b.appendFieldWithValue(fieldDef.name, t) { b =>
+                b.raw(v)
+              }
+            }
 
-      val resetDecl = deserializer.appendMethod("reset", VoidType)
-      resetDecl.visibility = VisibilityPublic
-      val resetDeclBB = BodyBuilder()
-      m.fieldDef.foreach { f =>
-        resetDeclBB.statement { b =>
-          b.invoke("reset") { b =>
-            b.variable(f.name)
-          } { b => }
+            m.fieldDef.foreach { fieldDef =>
+              b.appendMethod(
+                fieldDef.name,
+                JavaType(fieldDef.dataType),
+                VisibilityPublic
+              ) { b => } { b =>
+                b.returnStatement { b =>
+                  b.invoke("getValue") { b =>
+                    b.variable(fieldDef.name)
+                  } { b => }
+                }
+              }
+            }
+
+            b.appendField("position", IntType)
+
+            b.appendMethod("onMessage", BooleanType, VisibilityPublic) { b =>
+              b.newParam("buffer", JavaType(classOf[ByteBuffer]))
+            } { b =>
+              b.switch(m.fieldDef.zipWithIndex) { b =>
+                  b.variable("position")
+                } { case ((f, i), b) =>
+                  b.variable(i.toString)
+                } { case ((f, i), b) =>
+                  if (i == m.fieldDef.length - 1) {
+                    b.raw(
+                      s"""
+                         |if (${f.name}.onMessage(buffer)) {
+                         |  return true;
+                         |}
+               """.stripMargin)
+                  } else {
+                    b.raw(
+                      s"""
+                         |if (${f.name}.onMessage(buffer)) {
+                         |  position = ${i + 1};
+                         |}
+               """.stripMargin)
+                  }
+                }
+                .returnStatement("false")
+                .getText
+            }
+
+            b.appendMethod("reset", VoidType, VisibilityPublic) { b => } { b =>
+              m.fieldDef.foreach { f =>
+                b.statement { b =>
+                  b.invoke("reset") { b =>
+                    b.variable(f.name)
+                  } { b => }
+                }
+              }
+              b.assignStatement("position", "0")
+            }
+          }
+
+          b.appendFieldWithValue("deserializer" + m.name, deserializer) { b =>
+            b.newExpression(deserializer) { b => }
+          }
+        }
+
+        b.appendMethod("parseBody", VoidType, VisibilityProtected) { b =>
+          b.newParam("connection", JavaType(classOf[Connection]))
+          b.newParam("buffer", JavaType(classOf[ByteBuffer]))
+        } { b =>
+
+          b.switch(ast.messageDef.zipWithIndex) { b =>
+            b.variable("messageType")
+          } { case ((_, i), b) =>
+            b.variable(i.toString)
+          } { case ((m, _), b) =>
+            val value = "deserializer" + m.name
+            b.raw(
+              s"""
+                 |if ($value.onMessage(buffer)) {
+                 |   readingState = ReadingState.START;
+                 |   callback.visit(connection, $value);
+                 |   $value.reset();
+                 |}
+                 |""".stripMargin)
+          }
         }
       }
-      resetDeclBB.assignStatement("position", "0")
-      resetDecl.body = resetDeclBB.getText
     }
-
-    val parseBodyMethod = builder.appendMethod("parseBody", VoidType)
-    parseBodyMethod.visibility = VisibilityProtected
-    parseBodyMethod.addParam("connection", TypeRef(classOf[Connection]))
-    parseBodyMethod.addParam("buffer", TypeRef(classOf[ByteBuffer]))
-    parseBodyMethod.body = BodyBuilder()
-      .switch(ast.messageDef.zipWithIndex) { b =>
-        b.variable("messageType")
-      } { case ((_, i), b) =>
-        b.variable(i.toString)
-      } { case ((m, _), b) =>
-        val value = "deserializer" + m.name
-        b.raw(
-          s"""
-             |if ($value.onMessage(buffer)) {
-             |   readingState = ReadingState.START;
-             |   callback.visit(connection, $value);
-             |   $value.reset();
-             |}
-             |""".stripMargin)
-      }
-      .getText
-
-
-    builder
   }
 
   private def createDeserializer(t: DataType): (TypeRef, String) = {
@@ -178,152 +177,163 @@ class FlyweightGenerator(basePackage: String) {
 
     t match {
       case DataType_Long =>
-        createDeserializer(TypeRef(classOf[LongDeserializer]))
+        createDeserializer(JavaType(classOf[LongDeserializer]))
 
       case DataType_Int =>
-        createDeserializer(TypeRef(classOf[IntDeserializer]))
+        createDeserializer(JavaType(classOf[IntDeserializer]))
 
       case DataType_Byte =>
-        createDeserializer(TypeRef(classOf[ByteDeserializer]))
+        createDeserializer(JavaType(classOf[ByteDeserializer]))
 
       case DataType_FixedByteArray(DataType_Byte, size) =>
-        val ref = TypeRef(classOf[ByteArrayDeserializer])
+        val ref = JavaType(classOf[ByteArrayDeserializer])
         val value = ExpressionBuilder()
         value.newExpression(ref) { b => b.addParameter(size.toString) }
         (ref, value.getText)
     }
   }
 
-  private def generateBuilderFactoryInterface(builderInterfaces: Seq[InterfaceBuilder], basePackage: String) = {
-    val factory = InterfaceBuilder(basePackage, "BuilderFactory")
+  private def generateBuilderFactoryInterface(projectBuilder: ProjectBuilder,
+                                              builderInterfaces: Seq[(Message, TypeRef)],
+                                              basePackage: PackageRef) = {
 
-    builderInterfaces.foreach { builder =>
-      factory.appendMethod("create" + builder.name, builder.toTypeRef)
-    }
+    projectBuilder.newCompilationUnit(basePackage, "BuilderFactory") { b =>
+      b.newInterfaceBuilder("BuilderFactory") { b =>
 
-    factory
-  }
-
-  private def generateBuilderFactoryImplementation(factoryInterface: InterfaceBuilder, builderInterfaces: Seq[(InterfaceBuilder, Message)], basePackage: String) = {
-    val factory = ClassBuilder(basePackage, "BuilderFactoryImpl")
-    factory.addImplements(factoryInterface.toTypeRef)
-    factory.addImplements(TypeRef(classOf[ByteBufferHolder]))
-
-
-    val byteBuilderFactory = TypeRef(classOf[ByteBufferFactory])
-
-
-    factory.appendField("byteBufferFactory", byteBuilderFactory)
-    val setMethod = factory.appendMethod("set", VoidType)
-    setMethod.addParam("value", byteBuilderFactory)
-    setMethod.visibility = VisibilityPublic
-    setMethod.body = BodyBuilder()
-      .assignStatement("byteBufferFactory", "value")
-      .getText
-
-    builderInterfaces.foreach { case (builder, message) =>
-      val builderImpl = builderImplGenerator(factory, builder, message)
-
-
-      val builderField = factory.appendField("builder" + builder.name, builderImpl.toTypeRef)
-      builderField.value { builder =>
-        builder.newExpression(builderImpl.toTypeRef) { _ => }
-      }
-
-      val methodDecl = factory.appendMethod("create" + builder.name, builder.toTypeRef)
-      methodDecl.visibility = VisibilityPublic
-      methodDecl.body = BodyBuilder()
-        .returnStatement(builderField.name)
-        .getText
-    }
-
-    factory
-  }
-
-  private def builderImplGenerator(factory: ClassBuilder,
-                                   builder: InterfaceBuilder,
-                                   message: Message) = {
-    val writeCallbackRef = TypeRef(classOf[WriteCallback])
-
-    val builderImpl = factory.createInnerClass(builder.name + "Impl")
-    builderImpl.addImplements(builder.toTypeRef)
-    builderImpl.addImplements(writeCallbackRef)
-    builderImpl.isStatic = false
-    builderImpl.visibility = VisibilityPrivate
-
-
-    val sendMethod = builderImpl.appendMethod("send", BooleanType)
-    sendMethod.visibility = VisibilityPublic
-    sendMethod.body = BodyBuilder()
-      .returnStatement { builder =>
-        builder.invoke("write") { builder =>
-          builder.variable("byteBufferFactory")
-        } { builder =>
-          builder.addParameter("this")
+        builderInterfaces.foreach { case (m, t) =>
+          b.appendMethod("create" + m.name, t) { b => }
         }
       }
-      .getText
-
-    message.fieldDef.foreach { fieldDef =>
-      val field = builderImpl.appendField(fieldDef.name, TypeRef(fieldDef.dataType))
-      fieldDef.dataType match {
-        case DataType_FixedByteArray(s, l) =>
-          field.value { b =>
-            b.newArrayExpression(TypeRef(s)) { p =>
-              p.addParameter(l.toString)
-            }
-          }
-        case _ =>
-      }
-
-      val setterMethod = builderImpl.appendMethod(fieldDef.name, builder.toTypeRef)
-      setterMethod.addParam("value", TypeRef(fieldDef.dataType))
-      setterMethod.visibility = VisibilityPublic
-      val bb = BodyBuilder()
-      copyValueStatement(bb, fieldDef.name, "value", fieldDef.dataType)
-      bb.returnStatement("this")
-      setterMethod.body = bb.getText
     }
+  }
 
-    val acceptMethod = builderImpl.appendMethod("tryWrite", BooleanType)
-    acceptMethod.visibility = VisibilityPublic
-    acceptMethod.addParam("buffer", TypeRef(classOf[ByteBuffer]))
+  private def generateBuilderFactoryImplementation(projectBuilder: ProjectBuilder,
+                                                   factoryInterface: TypeRef,
+                                                   builderInterfaces: Seq[(Message, TypeRef)],
+                                                   basePackage: PackageRef) = {
 
-    val size = 1 + message.fieldDef.map(x => x.dataType.size).sum
-    val acceptBB = BodyBuilder()
-    acceptBB.statement { b =>
-      b.ifStatement { b =>
-        b.compare("<") { b =>
-          b.invoke("capacity") { b => b.variable("buffer") } { _ => }
+    val byteBuilderFactory = JavaType(classOf[ByteBufferFactory])
+
+    projectBuilder.newCompilationUnit(basePackage, "BuilderFactoryImpl") { b =>
+      b.newClassBuilder(
+        "BuilderFactoryImpl",
+        implements = Seq(factoryInterface, JavaType(classOf[ByteBufferHolder]))
+      ) { b =>
+        b.appendField("byteBufferFactory", byteBuilderFactory)
+
+        b.appendMethod(
+          "set",
+          VoidType,
+          visibility = VisibilityPublic) { b =>
+          b.newParam("value", byteBuilderFactory)
         } { b =>
-          b.raw(size.toString)
+          b.assignStatement("byteBufferFactory", "value")
         }
-      } { b =>
-        b.returnStatement("false")
-      }
-      b.invoke("put") { b =>
-        b.variable("buffer")
-      } { b =>
-        b.addParameter("(byte)" + message.number)
+
+
+        builderInterfaces.foreach { case (message, builder) =>
+          val builderImpl = builderImplGenerator(b, builder, message)
+
+
+          val builderFieldName = "builder" + message.name
+          b.appendFieldWithValue(builderFieldName, builderImpl) { b =>
+            b.newExpression(builderImpl) { _ => }
+          }
+
+          b.appendMethod("create" + message.name, builder, VisibilityPublic) { _ => } { b =>
+            b.returnStatement(builderFieldName)
+          }
+        }
       }
     }
-    message.fieldDef.foreach { fieldDef =>
-      fieldDef.dataType match {
-        case DataType_Long =>
-          invokePut(acceptBB, "buffer", "putLong", fieldDef.name)
-        case DataType_Int =>
-          invokePut(acceptBB, "buffer", "putInt", fieldDef.name)
-        case DataType_Byte =>
-          invokePut(acceptBB, "buffer", "put", fieldDef.name)
-        case DataType_FixedByteArray(s, l) =>
-          invokePut(acceptBB, "buffer", "put", fieldDef.name)
+  }
+
+  private def builderImplGenerator(factory: ClassBodyBuilder,
+                                   builder: TypeRef,
+                                   message: Message) = {
+    val writeCallbackRef = JavaType(classOf[WriteCallback])
+
+    factory.newClassBuilder(message.name + "Impl",
+      visibility = VisibilityPrivate,
+      isStatic = false,
+      implements = Seq(builder, writeCallbackRef)) { b =>
+
+      b.appendMethod(
+        "send",
+        BooleanType,
+        visibility = VisibilityPublic) { b => } { b =>
+        b.returnStatement { builder =>
+          builder.invoke("write") { builder =>
+            builder.variable("byteBufferFactory")
+          } { builder =>
+            builder.addParameter("this")
+          }
+        }
+      }
+
+      message.fieldDef.foreach { fieldDef =>
+        fieldDef.dataType match {
+          case DataType_FixedByteArray(s, l) =>
+            b.appendFieldWithValue(fieldDef.name, JavaType(fieldDef.dataType)) { b =>
+              b.newArrayExpression(JavaType(s)) { p =>
+                p.addParameter(l.toString)
+              }
+            }
+          case _ =>
+            b.appendField(fieldDef.name, JavaType(fieldDef.dataType))
+        }
+
+        b.appendMethod(
+          name = fieldDef.name,
+          typeRef = builder,
+          visibility = VisibilityPublic
+        ) { b =>
+          b.newParam("value", JavaType(fieldDef.dataType))
+        } { b =>
+          copyValueStatement(b, fieldDef.name, "value", fieldDef.dataType)
+          b.returnStatement("this")
+        }
+      }
+
+      b.appendMethod(
+        name = "tryWrite",
+        typeRef = BooleanType,
+        visibility = VisibilityPublic
+      ) { b =>
+        b.newParam("buffer", JavaType(classOf[ByteBuffer]))
+      } { b =>
+        val size = 1 + message.fieldDef.map(x => x.dataType.size).sum
+        b.statement { b =>
+          b.ifStatement { b =>
+            b.compare("<") { b =>
+              b.invoke("capacity") { b => b.variable("buffer") } { _ => }
+            } { b =>
+              b.raw(size.toString)
+            }
+          } { b =>
+            b.returnStatement("false")
+          }
+          b.invoke("put") { b =>
+            b.variable("buffer")
+          } { b =>
+            b.addParameter("(byte)" + message.number)
+          }
+        }
+        message.fieldDef.foreach { fieldDef =>
+          fieldDef.dataType match {
+            case DataType_Long =>
+              invokePut(b, "buffer", "putLong", fieldDef.name)
+            case DataType_Int =>
+              invokePut(b, "buffer", "putInt", fieldDef.name)
+            case DataType_Byte =>
+              invokePut(b, "buffer", "put", fieldDef.name)
+            case DataType_FixedByteArray(s, l) =>
+              invokePut(b, "buffer", "put", fieldDef.name)
+          }
+        }
+        b.returnStatement("true")
       }
     }
-    acceptBB.returnStatement("true")
-
-    acceptMethod.body = acceptBB.getText
-
-    builderImpl
   }
 
   private def invokePut(acceptBB: BodyBuilder, buffer: String, methodName: String, variable: String) = {
@@ -355,46 +365,55 @@ class FlyweightGenerator(basePackage: String) {
     }
   }
 
-  private def generateReaderVisitor(readersInterfaces: Seq[InterfaceBuilder], basePackage: String) = {
-    val factory = InterfaceBuilder(basePackage, "ReadersVisitor")
+  private def generateReaderVisitor(projectBuilder: ProjectBuilder,
+                                    readersInterfaces: Seq[TypeRef],
+                                    basePackage: PackageRef) = {
+
+    val connectionCallback = JavaType(classOf[ConnectionCallback[_]])
     val connection = classOf[Connection]
-    val connectionCallback = classOf[ConnectionCallback[_]]
-    factory.addGeneric("BuilderFactory")
-    factory.addImplements(TypeRef(connectionCallback).addGenericParams("BuilderFactory"))
-
-
-    readersInterfaces.foreach { reader =>
-      val methodDecl = factory.appendMethod("visit", VoidType)
-      methodDecl.addParam("connection", TypeRef(connection))
-      methodDecl.addParam("value", reader.toTypeRef)
-      methodDecl.isDefault = true
-      methodDecl.body = ""
+    projectBuilder.newCompilationUnit(basePackage, "ReadersVisitor") { b =>
+      b.newInterfaceBuilder(
+        "ReadersVisitor",
+        generics = Seq("BuilderFactory"),
+        implements = Seq(connectionCallback.addGenericParams("BuilderFactory"))
+      ) { b =>
+        readersInterfaces.foreach { reader =>
+          b.appendDefaultMethod("visit", VoidType) { b =>
+            b.newParam("connection", JavaType(connection))
+            b.newParam("value", reader)
+          } { b => }
+        }
+      }
     }
-
-    factory
   }
 
-  private def generateBuilderInterface(message: Message,
-                                       messagesBasePackage: String) = {
-    val builder = InterfaceBuilder(messagesBasePackage, message.name + "Builder")
+  private def generateBuilderInterface(projectBuilder: ProjectBuilder,
+                                       message: Message,
+                                       messagesBasePackage: PackageRef) = {
+    projectBuilder.newCompilationUnit(messagesBasePackage, message.name + "Builder") { b =>
+      b.newInterfaceBuilder(message.name + "Builder") { b =>
 
-    message.fieldDef.foreach { message =>
-      builder.appendMethod(message.name, builder.toTypeRef)
-        .addParam("value", TypeRef(message.dataType))
+        message.fieldDef.foreach { message =>
+          b.appendMethod(message.name, b.typeRef) { b =>
+
+            b.newParam("value", JavaType(message.dataType))
+          }
+        }
+        b.appendMethod("send", BooleanType) { b => }
+      }
     }
-    builder.appendMethod("send", BooleanType)
-
-    builder
   }
 
-  private def generateReaderInterface(message: Message,
-                                      messagesBasePackage: String) = {
-    val reader = InterfaceBuilder(messagesBasePackage, message.name + "Reader")
+  private def generateReaderInterface(projectBuilder: ProjectBuilder,
+                                      message: Message,
+                                      messagesBasePackage: PackageRef) = {
 
-    message.fieldDef.foreach { message =>
-      reader.appendMethod(message.name, TypeRef(message.dataType))
+    projectBuilder.newCompilationUnit(messagesBasePackage, message.name + "Reader") { b =>
+      b.newInterfaceBuilder(message.name + "Reader") { b =>
+        message.fieldDef.foreach { message =>
+          b.appendMethod(message.name, JavaType(message.dataType)) { b => }
+        }
+      }
     }
-
-    reader
   }
 }

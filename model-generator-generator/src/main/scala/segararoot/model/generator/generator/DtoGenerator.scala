@@ -3,114 +3,111 @@ package segararoot.model.generator.generator
 import segararoot.generator.ast._
 import segararoot.model.generator.generator.lib._
 
-import scala.collection.JavaConverters._
-
-class DtoGenerator(basePackage: String) {
+class DtoGenerator(basePackage: PackageRef) {
 
   def generate(ast: AST): java.util.Collection[CompilationUnit] = {
-    val messageEnum = generateEnum(ast.messageDef)
-    val messageInterface = generateMessageInterface(messageEnum.toTypeRef)
-    val messages = ast.messageDef
-      .map(message => generate(
+    val project = ProjectBuilder()
+
+    val messageEnum = generateEnum(project, ast.messageDef)
+    val messageInterface = generateMessageInterface(project, messageEnum)
+    ast.messageDef
+      .foreach(message => generate(
+        project,
         message,
-        basePackage + ".messages",
+        basePackage.subNamespace("messages"),
         messageEnum,
         messageInterface
       ))
-    (messages :+ messageEnum :+ messageInterface)
-      .map { x =>
-        toCompilationUnit(x)
+
+    project.toCompilationUnits
+  }
+
+  private def generateMessageInterface(project: ProjectBuilder, messageEnum: TypeRef) = {
+    project.newCompilationUnit(basePackage, "Message") { b =>
+      b.newInterfaceBuilder("Message") { b =>
+        b.appendMethod("messageType", messageEnum) { b => }
       }
-      .asJavaCollection
-  }
-
-  private def toCompilationUnit(enum: TypeBuilder) = {
-    CompilationUnit(enum.packageName, enum.name, enum.toJavaCode)
-  }
-
-  private def generateMessageInterface(messageEnum: TypeRef) = {
-    val message = InterfaceBuilder(basePackage, "Message")
-    message.appendMethod("messageType", messageEnum)
-    message
-  }
-
-  private def generateEnum(messageDef: Seq[Message]) = {
-    val enum = EnumBuilder(basePackage, "MessageType")
-
-    messageDef.foreach { m =>
-      enum.addValue(m.name)
     }
-    enum
   }
 
-  private def generate(message: Message,
-                       messagesBasePackage: String,
-                       messageType: EnumBuilder,
-                       messageInterface: InterfaceBuilder) = {
-    val dto = ClassBuilder(messagesBasePackage, message.name)
-    dto.addImplements(messageInterface.toTypeRef)
-
-    val builder = dto.createInnerClass(message.name + "Builder")
-
-
-    val BUILDER_PARAM_NAME = "builder"
-    val dtoConstructor = dto.appendConstructor()
-    dtoConstructor.visibility = VisibilityPrivate
-    dtoConstructor.addParam(BUILDER_PARAM_NAME, builder.toTypeRef)
-    val dtoConstructorBody = BodyBuilder()
-
-    val messageTypeMethod = dto.appendMethod("messageType", messageType.toTypeRef)
-    messageTypeMethod.visibility = VisibilityPublic
-    messageTypeMethod.body = BodyBuilder()
-      .returnStatement(messageType.toTypeRef.toJavaCode + "." + message.name)
-      .getText
-
-    message.fieldDef.foreach { fieldDef =>
-      val typeRef = TypeRef(fieldDef.dataType)
-      val field = dto.appendField(fieldDef.name, typeRef)
-      field.isFinal = true
-      val getter = dto.appendMethod(fieldDef.name, typeRef)
-      getter.visibility = VisibilityPublic
-      getter.body = BodyBuilder()
-        .returnStatement(fieldDef.name)
-        .getText
-
-
-      dtoConstructorBody.assignStatement(fieldDef.name, BUILDER_PARAM_NAME + "." + fieldDef.name)
-
-      builder.appendField(fieldDef.name, typeRef)
-
-      val setter = builder.appendMethod(fieldDef.name, builder.toTypeRef)
-      setter.visibility = VisibilityPublic
-      val PARAMETER_NAME = "value"
-      setter.addParam(PARAMETER_NAME, typeRef)
-      setter.body = BodyBuilder()
-        .assignStatement("this." + field.name, PARAMETER_NAME)
-        .returnStatement("this")
-        .getText
-    }
-    dtoConstructor.body = dtoConstructorBody.getText
-
-    val builderMethod = dto.appendMethod("builder", builder.toTypeRef)
-    builderMethod.visibility = VisibilityPublic
-    builderMethod.isStatic = true
-    builderMethod.body = BodyBuilder()
-      .returnStatement { b =>
-        b.newExpression(builder.toTypeRef) { b =>
+  private def generateEnum(project: ProjectBuilder, messageDef: Seq[Message]) = {
+    project.newCompilationUnit(basePackage, "MessageType") { b =>
+      b.newEnumBuilder("MessageType") { b =>
+        messageDef.foreach { m =>
+          b.appendValue(m.name)
         }
       }
-      .getText
+    }
+  }
 
-    val buildMethod = builder.appendMethod("build", dto.toTypeRef)
-    buildMethod.visibility = VisibilityPublic
-    buildMethod.body = BodyBuilder()
-      .returnStatement { b =>
-        b.newExpression(dto.toTypeRef) { b =>
-          b.addParameter("this")
+  private def generate(project: ProjectBuilder,
+                       message: Message,
+                       messagesBasePackage: PackageRef,
+                       messageType: TypeRef,
+                       messageInterface: TypeRef) = {
+    project.newCompilationUnit(messagesBasePackage, message.name) { b =>
+
+      val BUILDER_PARAM_NAME = "builder"
+      b.newClassBuilder(
+        message.name,
+        VisibilityPublic,
+        implements = Seq(messageInterface)) { b =>
+
+        val ref = b.thisTypeRef
+        message.fieldDef.foreach { fieldDef =>
+          val typeRef = JavaType(fieldDef.dataType)
+          b.appendField(fieldDef.name, typeRef,
+            visibility = VisibilityPrivate,
+            isFinal = true)
+          b.appendMethod(fieldDef.name, typeRef, VisibilityPublic) { b => } { b =>
+            b.returnStatement(fieldDef.name)
+          }
+        }
+        b.appendMethod("messageType", messageType, VisibilityPublic) { b => } { b =>
+          b.returnStatement(messageType.toJavaCode + "." + message.name)
+        }
+
+        var builderRef = b.newClassBuilder(message.name + "Builder") { b =>
+
+          b.appendMethod("build", ref, VisibilityPublic) { b => } { b =>
+            b.returnStatement { b =>
+              b.newExpression(ref) { b =>
+                b.addParameter("this")
+              }
+            }
+          }
+
+          message.fieldDef.foreach { fieldDef =>
+            val typeRef = JavaType(fieldDef.dataType)
+
+            val PARAMETER_NAME = "value"
+            b.appendField(fieldDef.name, typeRef)
+
+            b.appendMethod(fieldDef.name, b.thisTypeRef, VisibilityPublic) { b =>
+              b
+                .newParam(PARAMETER_NAME, typeRef)
+            } { b =>
+              b
+                .assignStatement("this." + fieldDef.name, PARAMETER_NAME)
+                .returnStatement("this")
+            }
+
+
+          }
+        }
+        b.appendMethod("builder", builderRef, VisibilityPublic, isStatic = true) { b => } { b =>
+          b.returnStatement { b =>
+            b.newExpression(builderRef) { b => }
+          }
+        }
+        b.appendCtor(VisibilityPrivate) { b =>
+          b.newParam(BUILDER_PARAM_NAME, builderRef)
+        } { b =>
+          message.fieldDef.foreach { fieldDef =>
+            b.assignStatement(fieldDef.name, BUILDER_PARAM_NAME + "." + fieldDef.name)
+          }
         }
       }
-      .getText
-
-    dto
+    }
   }
 }

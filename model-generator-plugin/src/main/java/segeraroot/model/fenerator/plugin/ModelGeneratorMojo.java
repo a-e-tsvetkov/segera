@@ -14,6 +14,7 @@ import segararoot.generator.parser.Parser;
 import segararoot.model.generator.generator.DtoGenerator;
 import segararoot.model.generator.generator.FlyweightGenerator;
 import segararoot.model.generator.generator.lib.CompilationUnit;
+import segararoot.model.generator.generator.lib.PackageRef;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -47,12 +48,13 @@ public class ModelGeneratorMojo extends AbstractMojo {
         AST ast = parse();
 
         var allUnits = new ArrayList<CompilationUnit>();
+        PackageRef basePackage = new PackageRef(packageName);
         if (generateDto) {
-            var units = new DtoGenerator(packageName).generate(ast);
+            var units = new DtoGenerator(basePackage).generate(ast);
             allUnits.addAll(units);
         }
         if (generateFlyweightInterface) {
-            var units = new FlyweightGenerator(packageName).generate(ast);
+            var units = new FlyweightGenerator(basePackage).generate(ast);
             allUnits.addAll(units);
         }
         for (CompilationUnit allUnit : allUnits) {
@@ -73,13 +75,13 @@ public class ModelGeneratorMojo extends AbstractMojo {
     }
 
     private void save(CompilationUnit compilationUnit) throws MojoExecutionException {
-        File folder = new File(outputFolder, packageToPath(compilationUnit.packageName()));
+        File folder = new File(outputFolder, packageToPath(compilationUnit.packageName().fullName()));
         File file = new File(folder, compilationUnit.name() + ".java");
 
         //noinspection ResultOfMethodCallIgnored
         folder.mkdirs();
-        try {
-            new FileOutputStream(file).write(compilationUnit.body().getBytes());
+        try (FileOutputStream outputStream = new FileOutputStream(file)) {
+            outputStream.write(compilationUnit.body().getBytes());
         } catch (IOException e) {
             getLog().debug(e);
             throw new MojoExecutionException("Error while writing file: " + e.getMessage());

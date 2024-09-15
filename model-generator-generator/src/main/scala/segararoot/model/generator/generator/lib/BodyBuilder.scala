@@ -54,13 +54,13 @@ object ExpressionBuilder {
 }
 
 class ExpressionBuilder(private val b: StringBuilder) {
-  def newExpression(referenceType: ReferenceType)(callback: ParameterBuilder => Unit): Unit = {
+  def newExpression(referenceType: TypeRef)(callback: ParameterBuilder => Unit): Unit = {
     b.append("new ").append(referenceType.toJavaCode).append("(")
     callback(new ParameterBuilder(b))
     b.append(")")
   }
 
-  def newArrayExpression(subType: TypeRef)(callback: ParameterBuilder => Unit): Unit = {
+  def newArrayExpression(subType: JavaType)(callback: ParameterBuilder => Unit): Unit = {
     b.append("new ").append(subType.toJavaCode).append("[")
     callback(new ParameterBuilder(b))
     b.append("]")

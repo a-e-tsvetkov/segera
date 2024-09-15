@@ -57,7 +57,7 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
         var context = getConnectionContext(connection);
         Quote quote;
         while ((quote = context.peek()) != null) {
-            boolean success = builderFactory.createQuoteBuilder()
+            boolean success = builderFactory.createQuote()
                     .symbol(quote.symbol())
                     .price(quote.price())
                     .volume(quote.volume())

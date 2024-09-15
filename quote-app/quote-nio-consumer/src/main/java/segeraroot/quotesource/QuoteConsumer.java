@@ -43,7 +43,7 @@ public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements
         var context = getConnectionContext(connection);
         if (!context.isSubscribed()) {
             for (String quote : symbols) {
-                boolean success = builderFactory.createSubscribeBuilder()
+                boolean success = builderFactory.createSubscribe()
                         .symbol(QuoteSupport.convert(quote))
                         .send();
                 if (!success) {
