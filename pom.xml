@@ -15,7 +15,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <scala.version>2.13.14</scala.version>
+        <scala.version>2.13.13</scala.version>
         <maven-scala-plugin.version>2.15.2</maven-scala-plugin.version>
 
         <slf4j.version>1.7.25</slf4j.version>
@@ -41,6 +41,18 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>5.13.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>5.13.0</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>3.26.0</version>
@@ -56,12 +68,6 @@
                 <groupId>org.scalatest</groupId>
                 <artifactId>scalatest_2.13</artifactId>
                 <version>3.2.19</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.scalatest</groupId>
-                <artifactId>scalatest_2.12</artifactId>
-                <version>3.2.18</version>
                 <scope>test</scope>
             </dependency>
         </dependencies>

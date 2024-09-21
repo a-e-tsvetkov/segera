@@ -190,6 +190,8 @@ class FlyweightGenerator(basePackage: PackageRef) {
         val value = ExpressionBuilder()
         value.newExpression(ref) { b => b.addParameter(size.toString) }
         (ref, value.getText)
+
+      case _ => throw new RuntimeException(s"unexpected type [$t]")
     }
   }
 
