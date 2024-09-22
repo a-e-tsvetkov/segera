@@ -1,9 +1,7 @@
 package segeraroot.connectivity.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.ConnectionCallback;
-import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.MessageDeserializer;
+import segeraroot.connectivity.ProtocolInterface;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,12 +12,11 @@ import java.nio.channels.ServerSocketChannel;
 
 
 @Slf4j
-public class Server<T extends ConnectionCallback<ByteBufferFactory> & MessageDeserializer>
-        extends Connector<T> {
+public class Server extends Connector {
     private final int port;
 
-    public Server(int port, T connectionCallback) {
-        super(connectionCallback);
+    public Server(int port, ProtocolInterface protocol) {
+        super(protocol);
         this.port = port;
     }
 

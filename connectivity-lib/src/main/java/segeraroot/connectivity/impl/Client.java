@@ -2,9 +2,7 @@ package segeraroot.connectivity.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.ConnectionCallback;
-import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.MessageDeserializer;
+import segeraroot.connectivity.ProtocolInterface;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -17,16 +15,15 @@ import java.util.concurrent.TimeUnit;
 
 
 @Slf4j
-public class Client<T extends ConnectionCallback<ByteBufferFactory> & MessageDeserializer>
-        extends Connector<T> {
+public class Client extends Connector {
     private final String host;
     private final int port;
     //TODO: Switch to zero memory footprint solution
     private final ScheduledExecutorService scheduledExecutorService;
     private final Runnable reconnectRunnable;
 
-    public Client(String host, int port, T connectionCallback) {
-        super(connectionCallback);
+    public Client(String host, int port, ProtocolInterface protocol) {
+        super(protocol);
         this.host = host;
         this.port = port;
 

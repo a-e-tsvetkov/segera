@@ -12,5 +12,6 @@
         <appender-ref ref="STDOUT"/>
     </root>
     <logger name="segeraroot" level="DEBUG"/>
+    <logger name="segeraroot.connectivity" level="DEBUG"/>
 
 </configuration>

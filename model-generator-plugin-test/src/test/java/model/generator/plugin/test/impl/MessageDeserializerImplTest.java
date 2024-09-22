@@ -4,7 +4,9 @@ import model.generator.plugin.test.ReadersVisitor;
 import model.generator.plugin.test.writers.TestMessageReader;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import segeraroot.connectivity.Connection;
 
@@ -12,14 +14,15 @@ import java.nio.ByteBuffer;
 import java.util.HexFormat;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class MessageDeserializerImplTest {
     @InjectMocks
     MessageDeserializerImpl deserializer;
     @Mock
-    ReadersVisitor<?> visitor;
+    ReadersVisitor visitor;
     @Mock
     Connection connection;
 

@@ -43,20 +43,11 @@ public class Serialization {
     public MessageWrapper readMessage(DataInputStream stream) throws IOException {
         byte typeByte = stream.readByte();
         MessageType messageType = MessageType.valueOf(typeByte);
-        Message value;
-        switch (messageType) {
-            case SUBSCRIBE:
-                value = readSubscribe(stream);
-                break;
-            case UNSUBSCRIBE:
-                value = readUnsubscribe(stream);
-                break;
-            case QUOTE:
-                value = readQuote(stream);
-                break;
-            default:
-                throw new RuntimeException("impossible");
-        }
+        Message value = switch (messageType) {
+            case SUBSCRIBE -> readSubscribe(stream);
+            case UNSUBSCRIBE -> readUnsubscribe(stream);
+            case QUOTE -> readQuote(stream);
+        };
         return MessageWrapper.builder()
                 .type(messageType)
                 .value(value)

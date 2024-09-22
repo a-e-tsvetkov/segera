@@ -14,7 +14,6 @@ public abstract class ConnectionHandlerBase {
     private final DataInputStream inputStream;
     private final Object writeLock = new Object();
     private volatile boolean running;
-    private Object context;
 
     public ConnectionHandlerBase(Socket socket) throws IOException {
         this.socket = socket;
@@ -92,25 +91,7 @@ public abstract class ConnectionHandlerBase {
         }
     }
 
-    protected final void writeHeader() {
-        try {
-            getSerialization().writeHeader(outputStream);
-        } catch (IOException e) {
-            log.error("Exception while read header", e);
-            stop();
-        }
-    }
-
     public final String getName() {
         return socket.getRemoteSocketAddress().toString();
-    }
-
-    public final Object get() {
-        return context;
-    }
-
-    public final void set(Object context) {
-        assert this.context == null;
-        this.context = context;
     }
 }

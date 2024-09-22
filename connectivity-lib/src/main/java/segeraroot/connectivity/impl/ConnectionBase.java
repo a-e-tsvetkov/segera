@@ -3,11 +3,12 @@ package segeraroot.connectivity.impl;
 
 import segeraroot.connectivity.Connection;
 
-public abstract class ConnectionBase<T> implements Connection {
+public abstract class ConnectionBase implements Connection {
     private Object context;
 
-    public Object get() {
-        return context;
+    @SuppressWarnings("unchecked")
+    public <C> C get() {
+        return (C) context;
     }
 
     public void set(Object context) {

@@ -1,27 +1,28 @@
 package segeraroot.quotesource;
 
-import segeraroot.connectivity.impl.SerializationConnectionCallbackFactory;
 import segeraroot.connectivity.impl.Server;
-import segeraroot.quotemodel.ReadersVisitor;
-import segeraroot.quotemodel.impl.BuilderFactoryImpl;
-import segeraroot.quotemodel.impl.MessageDeserializerImpl;
+import segeraroot.quotemodel.ServerProtocol;
 
 import java.util.Arrays;
 
 public class ServerMain {
     public static void main(String[] args) {
-        var quoteDispatcher = new QuoteDispatcher<BuilderFactoryImpl>();
-        var serializer = new SerializationConnectionCallbackFactory<BuilderFactoryImpl, ReadersVisitor<BuilderFactoryImpl>>(
-                MessageDeserializerImpl::new,
-                BuilderFactoryImpl::new
-        );
+        var quoteDispatcher = new QuoteDispatcher();
 
         for (String symbol : Arrays.asList("ABC", "DEF", "GHK")) {
-            var quoteGenerator = new QuoteGenerator(symbol, quoteDispatcher::acceptQuote);
+            var quoteGenerator = new QuoteGenerator(
+                    symbol,
+                    quoteDispatcher::acceptQuote,
+                    Thread::new);
             quoteGenerator.start();
         }
 
-        var server = new Server<>(9000, serializer.handleMessage(quoteDispatcher));
+        var protocol = ServerProtocol.of(
+                quoteDispatcher,
+                quoteDispatcher,
+                quoteDispatcher
+        );
+        var server = new Server(9000, protocol);
         server.start();
 
     }

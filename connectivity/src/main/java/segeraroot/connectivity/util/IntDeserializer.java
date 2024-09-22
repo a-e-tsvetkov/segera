@@ -10,7 +10,7 @@ public class IntDeserializer {
         while (buffer.hasRemaining()) {
             byte b = buffer.get();
             value = value << 8;
-            value |= b & 0xffL;
+            value |= b & 0xff;
             position++;
             if (position == 4) {
                 return true;

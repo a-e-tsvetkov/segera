@@ -3,7 +3,7 @@ package segararoot.model.generator.generator
 import segararoot.generator.ast._
 import segararoot.model.generator.generator.lib._
 import segeraroot.connectivity.util._
-import segeraroot.connectivity.{Connection, ConnectionCallback}
+import segeraroot.connectivity.{Connection}
 
 import java.nio.ByteBuffer
 
@@ -61,12 +61,11 @@ class FlyweightGenerator(basePackage: PackageRef) {
                                           basePackage: PackageRef) = {
 
     projectBuilder.newCompilationUnit(basePackage, "MessageDeserializerImpl") { b =>
-      val readerVisitorRef = readerVisitor.addGenericParams("?")
       b.newClassBuilder("MessageDeserializerImpl",
-        extendsClause = Some(JavaType(classOf[MessageDeserializerBase[_]])
-          .addGenericParams(readerVisitorRef))) { b =>
+        extendsClause = Some(JavaType(classOf[ReaderCallbackBase[_]])
+          .addGenericParams(readerVisitor))) { b =>
         b.appendCtor(VisibilityPublic) { b =>
-          b.newParam("callback", readerVisitorRef)
+          b.newParam("callback", readerVisitor)
         } { b =>
           b.statement { b =>
             b.callSuper { b => b.addParameter("callback") }
@@ -371,13 +370,10 @@ class FlyweightGenerator(basePackage: PackageRef) {
                                     readersInterfaces: Seq[TypeRef],
                                     basePackage: PackageRef) = {
 
-    val connectionCallback = JavaType(classOf[ConnectionCallback[_]])
     val connection = classOf[Connection]
     projectBuilder.newCompilationUnit(basePackage, "ReadersVisitor") { b =>
       b.newInterfaceBuilder(
         "ReadersVisitor",
-        generics = Seq("BuilderFactory"),
-        implements = Seq(connectionCallback.addGenericParams("BuilderFactory"))
       ) { b =>
         readersInterfaces.foreach { reader =>
           b.appendDefaultMethod("visit", VoidType) { b =>

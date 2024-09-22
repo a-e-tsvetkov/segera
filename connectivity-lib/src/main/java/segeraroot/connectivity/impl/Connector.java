@@ -1,11 +1,8 @@
 package segeraroot.connectivity.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.ConnectionCallback;
-import segeraroot.connectivity.Protocol;
+import segeraroot.connectivity.*;
 import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.MessageDeserializer;
 import segeraroot.connectivity.util.WriteCallback;
 
 import java.io.IOException;
@@ -19,19 +16,18 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
-public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> & MessageDeserializer> {
-    protected final T connectionCallback;
+public abstract class Connector {
+    protected final ProtocolInterface protocol;
     protected volatile boolean isRunning = false;
     private Selector selector;
     private ByteBuffer buffer;
 
-    public Connector(T connectionCallback) {
-        this.connectionCallback = connectionCallback;
+    public Connector(ProtocolInterface protocol) {
+        this.protocol = protocol;
     }
 
     public final void start() {
         isRunning = true;
-        Thread mainThread = new Thread(this::awaitConnectionsLoop);
         try {
             buffer = ByteBuffer.allocateDirect(1024);
             selector = Selector.open();
@@ -39,6 +35,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+        Thread mainThread = new Thread(this::mainLoop);
         mainThread.start();
     }
 
@@ -53,7 +50,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
     protected void onStart(Selector selector) throws IOException {
     }
 
-    private void awaitConnectionsLoop() {
+    private void mainLoop() {
         try {
             while (isRunning) {
                 selector.select();
@@ -79,14 +76,13 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         }
     }
 
-    @SuppressWarnings("unchecked")
     private ConnectionHandler getHandler(SelectionKey key) {
         return (ConnectionHandler) key.attachment();
     }
 
     protected void onClose(Connection handler) {
         log.debug("Connection closed: {}", handler.getName());
-        connectionCallback.handleCloseConnection(handler);
+        protocol.connectionListener().handleCloseConnection(handler);
     }
 
     private void onAccept(SelectionKey acceptKey) throws IOException {
@@ -102,7 +98,8 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         var handler = new ConnectionHandler(key);
         key.attach(handler);
         handler.writeHeader();
-        connectionCallback.handleNewConnection(handler);
+        Object context = protocol.connectionListener().handleNewConnection(handler);
+        handler.set(context);
     }
 
     protected void onHeaderRead(ByteBuffer buffer) {
@@ -124,7 +121,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         buffer.putInt(Protocol.VERSION);
     }
 
-    private class ConnectionHandler extends ConnectionBase<ByteBuffer> implements ByteBufferFactory {
+    private class ConnectionHandler extends ConnectionBase implements ByteBufferFactory {
 
         private final SelectionKey key;
         private final SocketChannel channel;
@@ -146,7 +143,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
         public void read(SelectionKey key) {
             assert this.key == key;
             try {
-                log.trace("Reading from channel: {}", remoteAddress);
+                log.trace("read: Reading from channel: {}", channel);
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
                 int length = channel.read(buffer);
@@ -160,7 +157,9 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
                     onHeaderRead(Connector.this.buffer);
                     headerRead = true;
                 }
-                connectionCallback.onMessage(this, buffer);
+                while (buffer.hasRemaining()) {
+                    protocol.readerCallback().onMessage(this, buffer);
+                }
             } catch (IOException e) {
                 log.error("Error in connection connection", e);
                 channelClose();
@@ -181,10 +180,10 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
 
         public void doWrite(SelectionKey key) throws IOException {
             var socketChannel = (SocketChannel) key.channel();
-            log.trace("Writing to channel: {}", remoteAddress);
+            log.trace("doWrite: Writing to channel: {}", remoteAddress);
             int writeVersionStart = writeVersion.get();
             if (!headerWrite) {
-                log.trace("Writing header: {}", remoteAddress);
+                log.trace("doWrite: Writing header: {}", remoteAddress);
                 buffer.position(0);
                 buffer.limit(buffer.capacity());
 
@@ -194,8 +193,8 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
                 assert buffer.remaining() == 0;
                 headerWrite = true;
             }
-            ConnectionCallback.WritingResult success = connectionCallback.handleWriting(this, this);
-            if (success == ConnectionCallback.WritingResult.DONE) {
+            var success = protocol.writerCallback().handleWriting(this, this);
+            if (success == WritingResult.DONE) {
                 if (writeVersionStart == writeVersion.get())
                     key.interestOps(SelectionKey.OP_READ);
             }
@@ -220,7 +219,7 @@ public abstract class Connector<T extends ConnectionCallback<ByteBufferFactory> 
 
         @Override
         public void startWriting() {
-            log.trace("Start writing {}", remoteAddress);
+            log.trace("startWriting: request writing to {}", remoteAddress);
             writeVersion.incrementAndGet();
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();

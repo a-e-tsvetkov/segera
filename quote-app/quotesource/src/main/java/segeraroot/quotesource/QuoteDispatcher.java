@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ConnectionListener;
+import segeraroot.connectivity.WriterCallback;
+import segeraroot.connectivity.WritingResult;
 import segeraroot.quotemodel.BuilderFactory;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.ReadersVisitor;
@@ -19,7 +22,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
-public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implements ReadersVisitor<BuilderFactoryImpl> {
+public class QuoteDispatcher implements ConnectionListener, ReadersVisitor , WriterCallback<BuilderFactory> {
     private final List<Connection> connections = new ArrayList<>();
     private final Object connectionListLock = new Object();
 
@@ -29,7 +32,7 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
             list = new ArrayList<>(connections);
         }
         for (var connection : list) {
-            var context = getConnectionContext(connection);
+            ConnectionContext context = connection.get();
             if (context.subscribed(QuoteSupport.convert(quote.symbol()))) {
                 context.add(quote);
                 connection.startWriting();
@@ -45,16 +48,16 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
     }
 
     @Override
-    public void handleNewConnection(Connection connection) {
-        connection.set(new ConnectionContext(connection.getName()));
+    public Object handleNewConnection(Connection connection) {
         synchronized (connectionListLock) {
             connections.add(connection);
         }
+        return new ConnectionContext(connection.getName());
     }
 
     @Override
     public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
-        var context = getConnectionContext(connection);
+        ConnectionContext context = connection.get();
         Quote quote;
         while ((quote = context.peek()) != null) {
             boolean success = builderFactory.createQuote()
@@ -62,6 +65,7 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
                     .price(quote.price())
                     .volume(quote.volume())
                     .date(quote.date())
+                    //TODO: Ensure buffer have enough space
                     .send();
 
             if (success) {
@@ -75,7 +79,7 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
 
     @Override
     public void visit(Connection connection, SubscribeReader value) {
-        var context = getConnectionContext(connection);
+        ConnectionContext context = connection.get();
         String symbol = QuoteSupport.convert(value.symbol());
         log.debug("Subscribe: {} {}", context.getName(), symbol);
         context.subscribe(symbol);
@@ -83,14 +87,10 @@ public class QuoteDispatcher<BuilderFactoryImpl extends BuilderFactory> implemen
 
     @Override
     public void visit(Connection connection, UnsubscribeReader value) {
-        var context = getConnectionContext(connection);
+        ConnectionContext context = connection.get();
         String symbol = QuoteSupport.convert(value.symbol());
         log.debug("unsubscribe: {} {}", context.getName(), symbol);
         context.unsubscribe(symbol);
-    }
-
-    private ConnectionContext getConnectionContext(Connection connection) {
-        return (ConnectionContext) connection.get();
     }
 
     @RequiredArgsConstructor

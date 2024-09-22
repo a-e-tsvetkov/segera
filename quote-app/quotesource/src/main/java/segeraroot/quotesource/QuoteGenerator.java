@@ -1,26 +1,25 @@
 package segeraroot.quotesource;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.messages.Quote;
 
 import java.time.Instant;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 @Slf4j
+@RequiredArgsConstructor
 public class QuoteGenerator {
     private final String symbol;
     private final Consumer<Quote> quoteConsumer;
+    private final ThreadFactory threadFactory;
     private volatile boolean running;
-
-    public QuoteGenerator(String symbol, Consumer<Quote> quoteConsumer) {
-        this.symbol = symbol;
-        this.quoteConsumer = quoteConsumer;
-    }
 
     public void start() {
         running = true;
-        Thread thread = new Thread(this::generatorLoop);
+        Thread thread = threadFactory.newThread(this::generatorLoop);
         thread.start();
     }
 

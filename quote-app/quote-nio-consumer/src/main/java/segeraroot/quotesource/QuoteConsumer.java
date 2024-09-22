@@ -5,6 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ConnectionListener;
+import segeraroot.connectivity.WriterCallback;
+import segeraroot.connectivity.WritingResult;
 import segeraroot.performancecounter.PCCounter;
 import segeraroot.performancecounter.PCHost;
 import segeraroot.quotemodel.BuilderFactory;
@@ -17,7 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
-public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements ReadersVisitor<BuilderFactoryImpl> {
+public class QuoteConsumer implements ReadersVisitor, WriterCallback<BuilderFactory>, ConnectionListener {
     private final List<String> symbols;
     private final PCCounter quoteCount;
 
@@ -28,21 +31,22 @@ public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements
 
     @Override
     public void handleCloseConnection(Connection connection) {
-        var context = getConnectionContext(connection);
+        ConnectionContext context = connection.get();
         context.setSubscribed(false);
     }
 
     @Override
-    public void handleNewConnection(Connection connection) {
-        connection.set(new ConnectionContext(connection.getName()));
+    public Object handleNewConnection(Connection connection) {
         connection.startWriting();
+        return new ConnectionContext(connection.getName());
     }
 
     @Override
     public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
-        var context = getConnectionContext(connection);
+        ConnectionContext context = connection.get();
         if (!context.isSubscribed()) {
             for (String quote : symbols) {
+                log.debug("Subscribing to {}", quote);
                 boolean success = builderFactory.createSubscribe()
                         .symbol(QuoteSupport.convert(quote))
                         .send();
@@ -69,16 +73,11 @@ public class QuoteConsumer<BuilderFactoryImpl extends BuilderFactory> implements
         );
     }
 
-    private ConnectionContext getConnectionContext(Connection connection) {
-        return (ConnectionContext) connection.get();
-    }
-
+    @Getter
     @RequiredArgsConstructor
     private static class ConnectionContext {
-        @Getter
         private final String name;
         @Setter
-        @Getter
         private volatile boolean subscribed;
     }
 }
