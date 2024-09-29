@@ -1,7 +1,10 @@
-package segeraroot.connectivity.util;
+package segeraroot.connectivity.impl.deserializers;
+
+import lombok.Getter;
 
 import java.nio.ByteBuffer;
 
+@Getter
 public class ByteDeserializer {
     private int value;
 
@@ -11,10 +14,6 @@ public class ByteDeserializer {
             return true;
         }
         return false;
-    }
-
-    public int getValue() {
-        return value;
     }
 
     public void reset() {

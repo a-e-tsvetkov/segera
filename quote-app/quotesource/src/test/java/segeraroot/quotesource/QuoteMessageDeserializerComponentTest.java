@@ -1,7 +1,7 @@
 package segeraroot.quotesource;
 
 import org.junit.jupiter.api.Test;
-import segeraroot.connectivity.util.LongDeserializer;
+import segeraroot.connectivity.impl.deserializers.LongDeserializer;
 
 import java.nio.ByteBuffer;
 

@@ -1,9 +1,12 @@
-package segeraroot.connectivity.util;
+package segeraroot.connectivity.impl.deserializers;
+
+import lombok.Getter;
 
 import java.nio.ByteBuffer;
 
 public class LongDeserializer {
     private int position;
+    @Getter
     private long value;
 
     public boolean onMessage(ByteBuffer buffer) {
@@ -17,10 +20,6 @@ public class LongDeserializer {
             }
         }
         return false;
-    }
-
-    public long getValue() {
-        return value;
     }
 
     public void reset() {

@@ -1,7 +1,6 @@
 package segeraroot.connectivity.impl;
 
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.ProtocolInterface;
 import segeraroot.connectivity.callbacks.*;
@@ -9,20 +8,31 @@ import segeraroot.connectivity.callbacks.*;
 import java.nio.ByteBuffer;
 import java.util.function.Supplier;
 
-@RequiredArgsConstructor
 public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterface {
-    private final ConnectionListener connectionListener;
     private final WriterCallback<BF> writerCallback;
-    private final Supplier<BF> builderFactorySupplier;
-    private final Supplier<ReaderCallback> messageDeserializeraFactory;
 
-    private final ConnectionListenerImpl connectionListenerImpl = new ConnectionListenerImpl();
-    private final ReaderCallbackImplX readerCallbackImpl = new ReaderCallbackImplX();
+    private final ConnectionListenerWrapper<Context<BF>> connectionListener;
+    private final ReaderCallbackImpl readerCallbackImpl = new ReaderCallbackImpl();
     private final WriterCallbackImpl writerCallbackImpl = new WriterCallbackImpl();
+
+    public BaseProtocol(
+            ConnectionListener connectionListener,
+            WriterCallback<BF> writerCallback,
+            Supplier<BF> builderFactorySupplier,
+            Supplier<ReaderCallback> messageDeserializeraFactory) {
+        this.writerCallback = writerCallback;
+        this.connectionListener = new ConnectionListenerWrapper<>(
+                connectionListener,
+                (ContextedConnectionWrapper wrapper) -> new Context<>(
+                        wrapper,
+                        builderFactorySupplier.get(),
+                        messageDeserializeraFactory.get())
+        );
+    }
 
     @Override
     public ConnectionListener connectionListener() {
-        return connectionListenerImpl;
+        return connectionListener;
     }
 
     @Override
@@ -36,43 +46,32 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
     }
 
     private void handleReading(Connection connection, ByteBuffer buffer) {
-        Context<BF> context = connection.get();
-        context.readerCallback.onMessage(context.innerConnection, buffer);
+        Context<BF> context = connectionListener.unwrap(connection);
+        context.readerCallback.onMessage(context.getInnerConnection(), buffer);
     }
 
     private WritingResult handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
-        Context<BF> context = connection.get();
+        Context<BF> context = connectionListener.unwrap(connection);
 
         BF builderFactory = context.getBuilderFactory();
         builderFactory.set(byteBufferFactory);
         try {
-            return writerCallback.handleWriting(context.innerConnection, builderFactory);
+            return writerCallback.handleWriting(context.getInnerConnection(), builderFactory);
         } finally {
             builderFactory.set(null);
         }
     }
 
-    private void handleCloseConnection(Connection connection) {
-        Context<BF> context = connection.get();
-        connectionListener.handleCloseConnection(context.innerConnection);
-    }
-
-    private Context<BF> handleNewConnection(Connection connection) {
-        ContextedConnectionWrapper wrapper = new ContextedConnectionWrapper(connection);
-        Object innerContext = connectionListener.handleNewConnection(wrapper);
-        wrapper.setContext(innerContext);
-        return new Context<>(
-                wrapper,
-                builderFactorySupplier.get(),
-                messageDeserializeraFactory.get());
-    }
-
-    @RequiredArgsConstructor
     @Getter
-    private static class Context<BF> {
-        private final ContextedConnectionWrapper innerConnection;
+    private static class Context<BF> extends ContextWrapper {
         private final BF builderFactory;
         private final ReaderCallback readerCallback;
+
+        public Context(ContextedConnectionWrapper innerConnection, BF builderFactory, ReaderCallback readerCallback) {
+            super(innerConnection);
+            this.builderFactory = builderFactory;
+            this.readerCallback = readerCallback;
+        }
     }
 
     private class WriterCallbackImpl implements WriterCallback<ByteBufferFactory> {
@@ -82,22 +81,10 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
         }
     }
 
-    private class ReaderCallbackImplX implements ReaderCallback {
+    private class ReaderCallbackImpl implements ReaderCallback {
         @Override
         public void onMessage(Connection connection, ByteBuffer buffer) {
             BaseProtocol.this.handleReading(connection, buffer);
-        }
-    }
-
-    private class ConnectionListenerImpl implements ConnectionListener {
-        @Override
-        public void handleCloseConnection(Connection connection) {
-            BaseProtocol.this.handleCloseConnection(connection);
-        }
-
-        @Override
-        public Context<BF> handleNewConnection(Connection connection) {
-            return BaseProtocol.this.handleNewConnection(connection);
         }
     }
 }

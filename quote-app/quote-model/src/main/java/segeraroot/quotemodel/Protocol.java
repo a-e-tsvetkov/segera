@@ -2,12 +2,11 @@ package segeraroot.quotemodel;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import segeraroot.connectivity.Client;
-import segeraroot.connectivity.ClientProtocol;
-import segeraroot.connectivity.Server;
-import segeraroot.connectivity.ServerProtocol;
+import segeraroot.connectivity.*;
 import segeraroot.connectivity.callbacks.ConnectionListener;
 import segeraroot.connectivity.callbacks.WriterCallback;
+import segeraroot.connectivity.impl.ClientHandler;
+import segeraroot.connectivity.impl.ServerHandler;
 import segeraroot.quotemodel.impl.BuilderFactoryImpl;
 import segeraroot.quotemodel.impl.MessageDeserializerImpl;
 
@@ -25,7 +24,7 @@ public class Protocol {
             ReadersVisitor readerCallback,
             ConnectionListener connectionListener,
             WriterCallback<BuilderFactory> writerCallback
-) {
+    ) {
         return new ClientBuilder(readerCallback, connectionListener, writerCallback);
     }
 
@@ -36,15 +35,15 @@ public class Protocol {
         private final WriterCallback<BuilderFactory> writerCallback;
 
         public Server at(int port) {
-            return new Server(port,
-                    ServerProtocol.of(
-                            connectionListener,
-                            adapt(writerCallback),
-                            BuilderFactoryImpl::new,
-                            () -> new MessageDeserializerImpl(readerCallback))
-            );
+            var protocol = ServerProtocol.of(
+                    connectionListener,
+                    adapt(writerCallback),
+                    BuilderFactoryImpl::new,
+                    () -> new MessageDeserializerImpl(readerCallback));
+            return new Server(port, new ServerHandler(protocol));
         }
     }
+
     @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
     public static class ClientBuilder {
         private final ReadersVisitor readerCallback;
@@ -52,17 +51,16 @@ public class Protocol {
         private final WriterCallback<BuilderFactory> writerCallback;
 
         public Client connectTo(String host, int port) {
-            return new Client(host, port,
-                    ClientProtocol.of(
-                            connectionListener,
-                            adapt(writerCallback),
-                            BuilderFactoryImpl::new,
-                            () -> new MessageDeserializerImpl(readerCallback))
-            );
+            var clientProtocol = ClientProtocol.of(
+                    connectionListener,
+                    adapt(writerCallback),
+                    BuilderFactoryImpl::new,
+                    () -> new MessageDeserializerImpl(readerCallback));
+            return new Client(host, port, new ClientHandler(clientProtocol));
         }
-        // There is only one impleentation of BuilderFactory
-
     }
+
+    // There is only one implementation of BuilderFactory
     @SuppressWarnings("unchecked")
     private static WriterCallback<BuilderFactoryImpl> adapt(WriterCallback<BuilderFactory> writerCallback) {
         return (WriterCallback<BuilderFactoryImpl>) (Object) writerCallback;

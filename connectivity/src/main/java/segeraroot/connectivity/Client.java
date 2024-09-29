@@ -1,11 +1,11 @@
 package segeraroot.connectivity;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.connectivity.callbacks.ConnectivityHandler;
 import segeraroot.connectivity.impl.Connector;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executors;
@@ -21,8 +21,8 @@ public class Client extends Connector {
     private final ScheduledExecutorService scheduledExecutorService;
     private final Runnable reconnectRunnable;
 
-    public Client(String host, int port, ProtocolInterface protocol) {
-        super(protocol);
+    public Client(String host, int port, ConnectivityHandler handler) {
+        super(handler);
         this.host = host;
         this.port = port;
 
@@ -62,8 +62,4 @@ public class Client extends Connector {
         }
     }
 
-    @Override
-    protected void onHeaderRead(ByteBuffer buffer) {
-        readHeader(buffer);
-    }
 }

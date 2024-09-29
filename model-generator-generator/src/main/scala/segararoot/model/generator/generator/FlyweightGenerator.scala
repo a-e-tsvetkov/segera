@@ -4,8 +4,8 @@ import segararoot.generator.ast._
 import segararoot.model.generator.generator.lib._
 import segeraroot.connectivity.Connection
 import segeraroot.connectivity.callbacks.{ByteBufferFactory, WriteCallback}
-import segeraroot.connectivity.impl.ByteBufferHolder
-import segeraroot.connectivity.util._
+import segeraroot.connectivity.impl.deserializers.{ByteArrayDeserializer, ByteDeserializer, IntDeserializer, LongDeserializer}
+import segeraroot.connectivity.impl.{ByteBufferHolder, ReaderCallbackBase}
 
 import java.nio.ByteBuffer
 

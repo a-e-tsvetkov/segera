@@ -1,15 +1,13 @@
 package segeraroot.connectivity.impl;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.ProtocolDescriptor;
-import segeraroot.connectivity.ProtocolInterface;
-import segeraroot.connectivity.callbacks.ByteBufferFactory;
-import segeraroot.connectivity.callbacks.WriteCallback;
+import segeraroot.connectivity.callbacks.ConnectivityChanel;
+import segeraroot.connectivity.callbacks.ConnectivityHandler;
 import segeraroot.connectivity.callbacks.WritingResult;
 
 import java.io.IOException;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -19,20 +17,16 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
+@RequiredArgsConstructor
 public abstract class Connector {
-    protected final ProtocolInterface protocol;
+    private final ConnectivityHandler handler;
+
     protected volatile boolean isRunning = false;
     private Selector selector;
-    private ByteBuffer buffer;
-
-    public Connector(ProtocolInterface protocol) {
-        this.protocol = protocol;
-    }
 
     public final void start() {
         isRunning = true;
         try {
-            buffer = ByteBuffer.allocateDirect(1024);
             selector = Selector.open();
             onStart(selector);
         } catch (IOException e) {
@@ -83,9 +77,9 @@ public abstract class Connector {
         return (ConnectionHandler) key.attachment();
     }
 
-    protected void onClose(Connection handler) {
-        log.debug("Connection closed: {}", handler.getName());
-        protocol.connectionListener().handleCloseConnection(handler);
+    protected void onClose(Connection connection) {
+        log.debug("Connection closed: {}", connection.getName());
+        handler.handleCloseConnection(connection);
     }
 
     private void onAccept(SelectionKey acceptKey) throws IOException {
@@ -98,71 +92,28 @@ public abstract class Connector {
         log.debug("Connection accepted: {}", channel.getRemoteAddress());
         channel.configureBlocking(false);
         SelectionKey key = channel.register(selector, SelectionKey.OP_READ);
-        var handler = new ConnectionHandler(key);
-        key.attach(handler);
-        handler.writeHeader();
-        Object context = protocol.connectionListener().handleNewConnection(handler);
-        handler.setContext(context);
+        var connection = new ConnectionHandler(key);
+        key.attach(connection);
+        Object context = handler.handleNewConnection(connection);
+        connection.setContext(context);
     }
 
-    protected void onHeaderRead(ByteBuffer buffer) {
-
-    }
-
-    protected final void readHeader(ByteBuffer buffer) {
-        int version = buffer.getInt();
-        if (version != ProtocolDescriptor.VERSION) {
-            log.error("Wrong version: expected={} actual={}", ProtocolDescriptor.VERSION, version);
-            stop();
-        }
-    }
-
-    protected void onHeaderWrite(ByteBuffer buffer) {
-    }
-
-    protected final void doWriteHeader(ByteBuffer buffer) {
-        buffer.putInt(ProtocolDescriptor.VERSION);
-    }
-
-    private class ConnectionHandler extends ConnectionBase implements ByteBufferFactory {
+    private class ConnectionHandler extends ConnectionBase implements ConnectivityChanel {
 
         private final SelectionKey key;
         private final SocketChannel channel;
-        private final SocketAddress remoteAddress;
-        private volatile boolean headerRead = false;
-        private volatile boolean headerWrite = false;
         private final AtomicInteger writeVersion = new AtomicInteger();
 
         public ConnectionHandler(SelectionKey key) {
             this.key = key;
             channel = (SocketChannel) key.channel();
-            try {
-                remoteAddress = channel.getRemoteAddress();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
 
         public void read(SelectionKey key) {
             assert this.key == key;
             try {
                 log.trace("read: Reading from channel: {}", channel);
-                buffer.position(0);
-                buffer.limit(buffer.capacity());
-                int length = channel.read(buffer);
-                if (length == -1) {
-                    onClose(this);
-                    key.cancel();
-                    return;
-                }
-                buffer.flip();
-                if (!headerRead) {
-                    onHeaderRead(Connector.this.buffer);
-                    headerRead = true;
-                }
-                while (buffer.hasRemaining()) {
-                    protocol.readerCallback().onMessage(this, buffer);
-                }
+                handler.read(this, this);
             } catch (IOException e) {
                 log.error("Error in connection connection", e);
                 channelClose();
@@ -182,47 +133,20 @@ public abstract class Connector {
 
 
         public void doWrite(SelectionKey key) throws IOException {
-            var socketChannel = (SocketChannel) key.channel();
-            log.trace("doWrite: Writing to channel: {}", remoteAddress);
+            log.trace("doWrite: Writing to channel: {}", getName());
             int writeVersionStart = writeVersion.get();
-            if (!headerWrite) {
-                log.trace("doWrite: Writing header: {}", remoteAddress);
-                buffer.position(0);
-                buffer.limit(buffer.capacity());
-
-                onHeaderWrite(Connector.this.buffer);
-                buffer.flip();
-                socketChannel.write(buffer);
-                assert buffer.remaining() == 0;
-                headerWrite = true;
-            }
-            var success = protocol.writerCallback().handleWriting(this, this);
+            var success = handler.write(this, this);
             if (success == WritingResult.DONE) {
-                if (writeVersionStart == writeVersion.get())
+                if (writeVersionStart == writeVersion.get()) {
+                    //TODO: Add proper synchronization. Currently write request can be lost if happens here.
                     key.interestOps(SelectionKey.OP_READ);
+                }
             }
-        }
-
-        @Override
-        public boolean write(WriteCallback consumer) {
-            buffer.position(0);
-            buffer.limit(buffer.capacity());
-            boolean success = consumer.tryWrite(buffer);
-            if (!success) {
-                return false;
-            }
-            buffer.flip();
-            try {
-                channel.write(buffer);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            return true;
         }
 
         @Override
         public void startWriting() {
-            log.trace("startWriting: request writing to {}", remoteAddress);
+            log.trace("startWriting: request writing to {}", getName());
             writeVersion.incrementAndGet();
             key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
             key.selector().wakeup();
@@ -233,12 +157,25 @@ public abstract class Connector {
             return key.channel().toString();
         }
 
-        public void writeHeader() {
-            startWriting();
-        }
-
         public void stop() {
             channelClose();
+        }
+
+        @Override
+        public void read(ByteBuffer buffer) throws IOException {
+            int length = channel.read(buffer);
+            log.trace("read: read = {}", length);
+            if (length == -1) {
+                onClose(this);
+                key.cancel();
+            }
+        }
+
+        @Override
+        public void write(ByteBuffer buffer) throws IOException {
+            int written = channel.write(buffer);
+            log.trace("write: written = {} remaining = {}", written, buffer.remaining());
+            assert buffer.remaining() == 0;
         }
     }
 }

@@ -1,4 +1,4 @@
-package segeraroot.connectivity.util;
+package segeraroot.connectivity.impl;
 
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.callbacks.ReaderCallback;
