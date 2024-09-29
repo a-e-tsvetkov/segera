@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>segera</groupId>
-            <artifactId>connectivity</artifactId>
+            <artifactId>connectivity-binary-protocol</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -26,6 +26,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

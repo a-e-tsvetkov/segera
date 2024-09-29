@@ -1,23 +1,17 @@
 package segeraroot.quotesource;
 
-import segeraroot.connectivity.ProtocolInterface;
-import segeraroot.connectivity.impl.Client;
 import segeraroot.performancecounter.impl.PCHostImpl;
+import segeraroot.quotemodel.Protocol;
 
 public class ClientMain {
     public static void main(String[] args) {
         var pcHost = new PCHostImpl();
         var quoteDispatcher = new QuoteConsumer(pcHost, "ABC", "DEF");
-
-        ProtocolInterface protocol = ClientProtocol.of(
+        var client = Protocol.client(
                 quoteDispatcher,
                 quoteDispatcher,
                 quoteDispatcher
-        );
-
-        var server = new Client("localhost", 9000, protocol);
-        server.start();
-
+        ).connectTo("localhost", 9000);
+        client.start();
     }
-
 }

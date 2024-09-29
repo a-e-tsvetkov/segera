@@ -75,12 +75,12 @@
 
     <modules>
         <module>connectivity</module>
+        <module>connectivity-binary-protocol</module>
         <module>model-generator-parser</module>
         <module>model-generator-ast</module>
         <module>model-generator-generator</module>
         <module>model-generator-plugin</module>
         <module>model-generator-plugin-test</module>
-        <module>connectivity-lib</module>
         <module>performance-counter</module>
         <module>performance-counter-test</module>
         <module>quote-app</module>

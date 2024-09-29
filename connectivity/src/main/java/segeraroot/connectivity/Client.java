@@ -1,8 +1,6 @@
-package segeraroot.connectivity.impl;
+package segeraroot.connectivity;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.ProtocolInterface;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

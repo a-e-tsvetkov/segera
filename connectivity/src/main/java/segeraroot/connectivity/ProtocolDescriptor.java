@@ -1,5 +1,5 @@
 package segeraroot.connectivity;
 
-public class Protocol {
+public class ProtocolDescriptor {
     public static final int VERSION = 1;
 }

@@ -1,7 +1,7 @@
-package segeraroot.connectivity.impl;
+package segeraroot.connectivity;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.*;
+import segeraroot.connectivity.impl.ConnectionBase;
 import segeraroot.connectivity.util.ByteBufferFactory;
 import segeraroot.connectivity.util.WriteCallback;
 
@@ -99,7 +99,7 @@ public abstract class Connector {
         key.attach(handler);
         handler.writeHeader();
         Object context = protocol.connectionListener().handleNewConnection(handler);
-        handler.set(context);
+        handler.setContext(context);
     }
 
     protected void onHeaderRead(ByteBuffer buffer) {
@@ -108,8 +108,8 @@ public abstract class Connector {
 
     protected final void readHeader(ByteBuffer buffer) {
         int version = buffer.getInt();
-        if (version != Protocol.VERSION) {
-            log.error("Wrong version: expected={} actual={}", Protocol.VERSION, version);
+        if (version != ProtocolDescriptor.VERSION) {
+            log.error("Wrong version: expected={} actual={}", ProtocolDescriptor.VERSION, version);
             stop();
         }
     }
@@ -118,7 +118,7 @@ public abstract class Connector {
     }
 
     protected final void doWriteHeader(ByteBuffer buffer) {
-        buffer.putInt(Protocol.VERSION);
+        buffer.putInt(ProtocolDescriptor.VERSION);
     }
 
     private class ConnectionHandler extends ConnectionBase implements ByteBufferFactory {

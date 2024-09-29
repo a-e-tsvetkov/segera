@@ -1,7 +1,6 @@
 package segeraroot.quotesource;
 
-import segeraroot.connectivity.impl.Server;
-import segeraroot.quotemodel.ServerProtocol;
+import segeraroot.quotemodel.Protocol;
 
 import java.util.Arrays;
 
@@ -17,12 +16,12 @@ public class ServerMain {
             quoteGenerator.start();
         }
 
-        var protocol = ServerProtocol.of(
-                quoteDispatcher,
-                quoteDispatcher,
-                quoteDispatcher
-        );
-        var server = new Server(9000, protocol);
+        var server = Protocol.server(
+                        quoteDispatcher,
+                        quoteDispatcher,
+                        quoteDispatcher
+                ).at(9000);
+
         server.start();
 
     }
