@@ -1,7 +1,7 @@
 package segeraroot.connectivity.util;
 
 import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.ReaderCallback;
+import segeraroot.connectivity.callbacks.ReaderCallback;
 
 import java.nio.ByteBuffer;
 

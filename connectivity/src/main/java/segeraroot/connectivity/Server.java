@@ -1,6 +1,7 @@
 package segeraroot.connectivity;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.connectivity.impl.Connector;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;

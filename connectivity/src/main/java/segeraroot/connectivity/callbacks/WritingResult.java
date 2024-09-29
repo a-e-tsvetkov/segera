@@ -1,4 +1,4 @@
-package segeraroot.connectivity;
+package segeraroot.connectivity.callbacks;
 
 public enum WritingResult {
     CONTINUE, DONE

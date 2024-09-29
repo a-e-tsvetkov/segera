@@ -2,9 +2,9 @@ package segeraroot.connectivity.impl;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import segeraroot.connectivity.*;
-import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.ByteBufferHolder;
+import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ProtocolInterface;
+import segeraroot.connectivity.callbacks.*;
 
 import java.nio.ByteBuffer;
 import java.util.function.Supplier;

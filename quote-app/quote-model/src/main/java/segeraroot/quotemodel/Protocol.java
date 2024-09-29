@@ -2,7 +2,12 @@ package segeraroot.quotemodel;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import segeraroot.connectivity.*;
+import segeraroot.connectivity.Client;
+import segeraroot.connectivity.ClientProtocol;
+import segeraroot.connectivity.Server;
+import segeraroot.connectivity.ServerProtocol;
+import segeraroot.connectivity.callbacks.ConnectionListener;
+import segeraroot.connectivity.callbacks.WriterCallback;
 import segeraroot.quotemodel.impl.BuilderFactoryImpl;
 import segeraroot.quotemodel.impl.MessageDeserializerImpl;
 

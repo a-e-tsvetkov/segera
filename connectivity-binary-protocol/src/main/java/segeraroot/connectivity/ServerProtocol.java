@@ -1,8 +1,11 @@
 package segeraroot.connectivity;
 
 import lombok.experimental.UtilityClass;
+import segeraroot.connectivity.callbacks.ConnectionListener;
+import segeraroot.connectivity.callbacks.ReaderCallback;
+import segeraroot.connectivity.callbacks.WriterCallback;
 import segeraroot.connectivity.impl.BaseProtocol;
-import segeraroot.connectivity.util.ByteBufferHolder;
+import segeraroot.connectivity.impl.ByteBufferHolder;
 
 import java.util.function.Supplier;
 

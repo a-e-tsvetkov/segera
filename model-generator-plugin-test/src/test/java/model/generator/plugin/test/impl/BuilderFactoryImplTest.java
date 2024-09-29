@@ -2,10 +2,12 @@ package model.generator.plugin.test.impl;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.WriteCallback;
+import segeraroot.connectivity.callbacks.ByteBufferFactory;
+import segeraroot.connectivity.callbacks.WriteCallback;
 
 import java.nio.ByteBuffer;
 

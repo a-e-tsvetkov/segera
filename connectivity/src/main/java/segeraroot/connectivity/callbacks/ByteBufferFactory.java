@@ -1,4 +1,4 @@
-package segeraroot.connectivity.util;
+package segeraroot.connectivity.callbacks;
 
 public interface ByteBufferFactory {
 

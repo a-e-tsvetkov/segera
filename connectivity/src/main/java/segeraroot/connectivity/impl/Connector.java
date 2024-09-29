@@ -1,9 +1,12 @@
-package segeraroot.connectivity;
+package segeraroot.connectivity.impl;
 
 import lombok.extern.slf4j.Slf4j;
-import segeraroot.connectivity.impl.ConnectionBase;
-import segeraroot.connectivity.util.ByteBufferFactory;
-import segeraroot.connectivity.util.WriteCallback;
+import segeraroot.connectivity.Connection;
+import segeraroot.connectivity.ProtocolDescriptor;
+import segeraroot.connectivity.ProtocolInterface;
+import segeraroot.connectivity.callbacks.ByteBufferFactory;
+import segeraroot.connectivity.callbacks.WriteCallback;
+import segeraroot.connectivity.callbacks.WritingResult;
 
 import java.io.IOException;
 import java.net.SocketAddress;
