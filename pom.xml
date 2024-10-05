@@ -76,6 +76,8 @@
     <modules>
         <module>connectivity</module>
         <module>connectivity-binary-protocol</module>
+        <module>connectivity-http</module>
+        <module>connectivity-http-test</module>
         <module>model-generator-parser</module>
         <module>model-generator-ast</module>
         <module>model-generator-generator</module>
