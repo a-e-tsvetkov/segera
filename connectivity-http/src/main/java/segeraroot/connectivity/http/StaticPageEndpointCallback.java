@@ -27,6 +27,7 @@ public class StaticPageEndpointCallback implements RequestHandler {
     public boolean onHeader(HttpMethod method, String path, Map<String, String> header) {
         headers.add(formatHeader(Headers.ContentType, "text/html; charset=US_ASCII"));
         headers.add(formatHeader(Headers.ContentLength, String.valueOf(content.length())));
+        headers.add(formatHeader(Headers.Connection, "close"));
         headers.add("\r\n");
         return true;
     }
@@ -47,13 +48,14 @@ public class StaticPageEndpointCallback implements RequestHandler {
             case START:
                 current.set(formatStatusLine());
             case STATUS:
-                if (current.write(buffer)) {
-                    current.set(headers.poll());
-                    state = State.HEADER;
+                if (!current.write(buffer)) {
+                    break;
                 }
-                break;
+                //noinspection DataFlowIssue
+                current.set(headers.poll());
+                state = State.HEADER;
             case HEADER:
-                if (current.write(buffer)) {
+                while (current.write(buffer)) {
                     String next = headers.poll();
                     if (next == null) {
                         current.set(content);
@@ -62,7 +64,9 @@ public class StaticPageEndpointCallback implements RequestHandler {
                         current.set(next);
                     }
                 }
-                break;
+                if (state == State.HEADER) {
+                    break;
+                }
             case BODY:
                 if (current.write(buffer)) {
                     return WritingResult.DONE;

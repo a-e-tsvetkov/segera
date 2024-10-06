@@ -66,7 +66,7 @@ public abstract class BaseHandler implements ConnectivityHandler {
     }
 
     protected static class Context extends ContextWrapper {
-        public Context(ContextedConnectionWrapper wrapper) {
+        public Context(Connection wrapper) {
             super(wrapper);
         }
     }

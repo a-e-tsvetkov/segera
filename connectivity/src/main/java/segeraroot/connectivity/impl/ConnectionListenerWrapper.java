@@ -9,7 +9,7 @@ import java.util.function.Function;
 @RequiredArgsConstructor
 public class ConnectionListenerWrapper<C extends ContextWrapper> implements ConnectionListener {
     private final ConnectionListener connectionListener;
-    private final Function<ContextedConnectionWrapper, C> contextFactory;
+    private final Function<Connection, C> contextFactory;
 
     @Override
     public void handleCloseConnection(Connection connection) {

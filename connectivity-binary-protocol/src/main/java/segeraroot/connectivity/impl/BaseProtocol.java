@@ -23,7 +23,7 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
         this.writerCallback = writerCallback;
         this.connectionListener = new ConnectionListenerWrapper<>(
                 connectionListener,
-                (ContextedConnectionWrapper wrapper) -> new Context<>(
+                wrapper -> new Context<>(
                         wrapper,
                         builderFactorySupplier.get(),
                         messageDeserializeraFactory.get())
@@ -67,7 +67,7 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
         private final BF builderFactory;
         private final ReaderCallback readerCallback;
 
-        public Context(ContextedConnectionWrapper innerConnection, BF builderFactory, ReaderCallback readerCallback) {
+        public Context(Connection innerConnection, BF builderFactory, ReaderCallback readerCallback) {
             super(innerConnection);
             this.builderFactory = builderFactory;
             this.readerCallback = readerCallback;

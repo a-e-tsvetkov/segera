@@ -1,8 +1,9 @@
 package segeraroot.connectivity.http.test;
 
-import segeraroot.connectivity.http.EndpointCallback;
 import segeraroot.connectivity.http.EndpointCallbackFactory;
 import segeraroot.connectivity.http.HttpProtocol;
+
+import java.nio.file.Path;
 
 public class ServerMain {
 
@@ -15,17 +16,19 @@ public class ServerMain {
                         <title>Title</title>
                     </head>
                     <body>
-                    Hello world!
+                    Not found
                     </body>
                     </html>
                     """;
 
     public static void main(String[] args) {
-        var defaultHandler = EndpointCallbackFactory.staticPage(CONTENT);
-        var server = HttpProtocol.server(
-                new EndpointCallback(defaultHandler)
-        ).at(8080);
-
-        server.start();
+        var root = FileSystemEndpointCallbackFactory.builder()
+                .root(Path.of("."))
+                .defaultHandler(()-> EndpointCallbackFactory.staticPage(CONTENT))
+                .build();
+        HttpProtocol
+                .server(root)
+                .at(8080)
+                .start();
     }
 }

@@ -4,11 +4,13 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Delegate;
 import segeraroot.connectivity.Connection;
-import segeraroot.connectivity.callbacks.*;
+import segeraroot.connectivity.callbacks.ConnectionListener;
+import segeraroot.connectivity.callbacks.ConnectivityChanel;
+import segeraroot.connectivity.callbacks.ConnectivityHandler;
+import segeraroot.connectivity.callbacks.WritingResult;
 import segeraroot.connectivity.http.EndpointCallback;
 import segeraroot.connectivity.impl.ConnectionListenerWrapper;
 import segeraroot.connectivity.impl.ContextWrapper;
-import segeraroot.connectivity.impl.ContextedConnectionWrapper;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -79,7 +81,7 @@ public class HttpServerHandler implements ConnectivityHandler {
         @Setter
         private volatile RequestHandler requestHandler;
 
-        public Context(ContextedConnectionWrapper wrapper, ByteStream byteStream, HttpDecoder decoder) {
+        public Context(Connection wrapper, ByteStream byteStream, HttpDecoder decoder) {
             super(wrapper);
             this.byteStream = byteStream;
             this.httpDecoder = decoder;
