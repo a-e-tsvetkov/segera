@@ -34,11 +34,11 @@ public class HttpDecoder {
             case ATTRIBUTES -> {
                 var result = headerParser.onMessage(byteStream);
                 if (result) {
-//                    if (log.isTraceEnabled()) {
-                    log.trace("onMessage: header done");
-                    headerParser.getHeader().forEach((key, value) ->
-                            log.trace("\t{} = {}", key, value));
-//                    }
+                    if (log.isTraceEnabled()) {
+                        log.trace("onMessage: header done");
+                        headerParser.getHeader().forEach((key, value) ->
+                                log.trace("\t{} = {}", key, value));
+                    }
                     state = State.BODY;
                     requestHandler = endpointCallback.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
                     if (requestHandler.onHeader(

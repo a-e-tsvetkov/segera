@@ -60,6 +60,7 @@ public class StaticPageEndpointCallback implements RequestHandler {
                     if (next == null) {
                         current.set(content);
                         state = State.BODY;
+                        break;
                     } else {
                         current.set(next);
                     }

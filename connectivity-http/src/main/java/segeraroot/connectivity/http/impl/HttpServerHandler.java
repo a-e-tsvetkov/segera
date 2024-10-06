@@ -16,19 +16,18 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 
 public class HttpServerHandler implements ConnectivityHandler {
-    public static final int CAPACITY = 1024;
+    public static final int CAPACITY = 4*1024;
 
-    private final ByteBuffer buffer;
+    private final ByteStream byteStream;
     @Delegate(types = ConnectionListener.class)
     private final ConnectionListenerWrapper<Context> connectionListener;
 
     public HttpServerHandler(EndpointCallback endpointCallback) {
-        buffer = ByteBuffer.allocateDirect(CAPACITY);
+        byteStream = new ByteStream(CAPACITY);
         connectionListener = new ConnectionListenerWrapper<>(
                 ConnectionListener.NOOP,
                 wrapper -> new Context(
                         wrapper,
-                        new ByteStream(CAPACITY),
                         new HttpDecoder(endpointCallback))
         );
     }
@@ -36,16 +35,11 @@ public class HttpServerHandler implements ConnectivityHandler {
     @Override
     public final void read(ConnectivityChanel channel, Connection connection) throws IOException {
         Context context = connectionListener.unwrap(connection);
-        buffer.position(0);
-        buffer.limit(buffer.capacity());
-        channel.read(buffer);
-        buffer.flip();
-        doRead(buffer, context);
+        byteStream.readFrom(channel);
+        doRead(byteStream, context);
     }
 
-    private void doRead(ByteBuffer buffer, Context context) {
-        var byteStream = context.getByteStream();
-        byteStream.copy(buffer);
+    private void doRead(ByteStream byteStream, Context context) {
         while (byteStream.hasRemaining()) {
             RequestHandler requestHandler = context.getHttpDecoder().onMessage(byteStream);
             if (requestHandler != null) {
@@ -58,7 +52,7 @@ public class HttpServerHandler implements ConnectivityHandler {
     @Override
     public final WritingResult write(ConnectivityChanel chanel, Connection connection) throws IOException {
         Context context = connectionListener.unwrap(connection);
-        return doWrite(buffer, chanel, context);
+        return doWrite(byteStream.byteBuffer(), chanel, context);
     }
 
     private WritingResult doWrite(ByteBuffer buffer, ConnectivityChanel chanel, Context context) throws IOException {
@@ -67,6 +61,7 @@ public class HttpServerHandler implements ConnectivityHandler {
         WritingResult result = writeResponse(context, buffer);
         buffer.flip();
         chanel.write(buffer);
+        assert !buffer.hasRemaining();
         return result;
     }
 
@@ -76,14 +71,12 @@ public class HttpServerHandler implements ConnectivityHandler {
 
     @Getter
     private static class Context extends ContextWrapper {
-        private final ByteStream byteStream;
         private final HttpDecoder httpDecoder;
         @Setter
         private volatile RequestHandler requestHandler;
 
-        public Context(Connection wrapper, ByteStream byteStream, HttpDecoder decoder) {
+        public Context(Connection wrapper, HttpDecoder decoder) {
             super(wrapper);
-            this.byteStream = byteStream;
             this.httpDecoder = decoder;
         }
     }

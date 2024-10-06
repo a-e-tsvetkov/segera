@@ -115,7 +115,8 @@ public abstract class Connector {
                 log.trace("read: Reading from channel: {}", channel);
                 handler.read(this, this);
             } catch (IOException e) {
-                log.error("Error in connection connection", e);
+                log.error("read: Error: {}", e.getMessage());
+                log.debug("read: Error ", e);
                 channelClose();
             }
         }
