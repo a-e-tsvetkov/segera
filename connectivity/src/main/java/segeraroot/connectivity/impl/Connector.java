@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.callbacks.ConnectivityChanel;
 import segeraroot.connectivity.callbacks.ConnectivityHandler;
-import segeraroot.connectivity.callbacks.WritingResult;
+import segeraroot.connectivity.callbacks.OperationResult;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -137,7 +137,7 @@ public abstract class Connector {
             log.trace("doWrite: Writing to channel: {}", getName());
             int writeVersionStart = writeVersion.get();
             var success = handler.write(this, this);
-            if (success == WritingResult.DONE) {
+            if (success == OperationResult.DONE) {
                 if (writeVersionStart == writeVersion.get()) {
                     //TODO: Add proper synchronization. Currently write request can be lost if happens here.
                     key.interestOps(SelectionKey.OP_READ);
@@ -176,7 +176,7 @@ public abstract class Connector {
         public void write(ByteBuffer buffer) throws IOException {
             int written = channel.write(buffer);
             log.trace("write: written = {} remaining = {}", written, buffer.remaining());
-            assert buffer.remaining() == 0;
+            assert !buffer.hasRemaining();
         }
     }
 }

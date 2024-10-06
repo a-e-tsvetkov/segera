@@ -42,15 +42,15 @@ public abstract class BaseHandler implements ConnectivityHandler {
     }
 
     @Override
-    public final WritingResult write(ConnectivityChanel chanel, Connection connection) throws IOException {
+    public final OperationResult write(ConnectivityChanel chanel, Connection connection) throws IOException {
         Context context = connectionListener.unwrap(connection);
         return doWrite(buffer, chanel, context);
     }
 
-    protected WritingResult doWrite(ByteBuffer buffer, ConnectivityChanel chanel, Context context) throws IOException {
+    protected OperationResult doWrite(ByteBuffer buffer, ConnectivityChanel chanel, Context context) throws IOException {
         buffer.position(0);
         buffer.limit(buffer.capacity());
-        WritingResult result = protocol.writerCallback()
+        OperationResult result = protocol.writerCallback()
                 .handleWriting(context.getInnerConnection(), byteBufferFactory);
         buffer.flip();
         chanel.write(buffer);

@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.callbacks.ConnectionListener;
 import segeraroot.connectivity.callbacks.WriterCallback;
-import segeraroot.connectivity.callbacks.WritingResult;
+import segeraroot.connectivity.callbacks.OperationResult;
 import segeraroot.quotemodel.BuilderFactory;
 import segeraroot.quotemodel.QuoteSupport;
 import segeraroot.quotemodel.ReadersVisitor;
@@ -56,7 +56,7 @@ public class QuoteDispatcher implements ConnectionListener, ReadersVisitor , Wri
     }
 
     @Override
-    public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
+    public OperationResult handleWriting(Connection connection, BuilderFactory builderFactory) {
         ConnectionContext context = connection.get();
         Quote quote;
         while ((quote = context.peek()) != null) {
@@ -71,10 +71,10 @@ public class QuoteDispatcher implements ConnectionListener, ReadersVisitor , Wri
             if (success) {
                 context.poll();
             } else {
-                return WritingResult.CONTINUE;
+                return OperationResult.CONTINUE;
             }
         }
-        return WritingResult.DONE;
+        return OperationResult.DONE;
     }
 
     @Override

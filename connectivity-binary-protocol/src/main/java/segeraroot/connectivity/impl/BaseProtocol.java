@@ -50,7 +50,7 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
         context.readerCallback.onMessage(context.getInnerConnection(), buffer);
     }
 
-    private WritingResult handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
+    private OperationResult handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
         Context<BF> context = connectionListener.unwrap(connection);
 
         BF builderFactory = context.getBuilderFactory();
@@ -76,7 +76,7 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
 
     private class WriterCallbackImpl implements WriterCallback<ByteBufferFactory> {
         @Override
-        public WritingResult handleWriting(Connection connection, ByteBufferFactory writer) {
+        public OperationResult handleWriting(Connection connection, ByteBufferFactory writer) {
             return BaseProtocol.this.handleWriting(connection, writer);
         }
     }

@@ -1,6 +1,7 @@
 package segeraroot.connectivity.http.impl;
 
 import segeraroot.connectivity.callbacks.ConnectivityChanel;
+import segeraroot.connectivity.callbacks.OperationResult;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -29,7 +30,7 @@ public class ByteStream {
         assert !buffer.hasRemaining();
     }
 
-    public boolean readLine(StringBuilder builder) {
+    public OperationResult readLine(StringBuilder builder) {
         for (; start < remaining; start++) {
             char ch = (char) byteArray[start];
             switch (ch) {
@@ -37,11 +38,11 @@ public class ByteStream {
                     continue;
                 case '\n':
                     start++;
-                    return true;
+                    return OperationResult.DONE;
             }
             builder.append(ch);
         }
-        return false;
+        return OperationResult.CONTINUE;
     }
 
     public boolean hasRemaining() {

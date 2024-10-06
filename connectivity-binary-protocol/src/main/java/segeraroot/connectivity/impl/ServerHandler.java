@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.ProtocolDescriptor;
 import segeraroot.connectivity.ProtocolInterface;
 import segeraroot.connectivity.callbacks.ConnectivityChanel;
-import segeraroot.connectivity.callbacks.WritingResult;
+import segeraroot.connectivity.callbacks.OperationResult;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,7 +18,7 @@ public class ServerHandler extends BaseHandler {
     }
 
     @Override
-    protected WritingResult doWrite(ByteBuffer buffer, ConnectivityChanel chanel, Context context) throws IOException {
+    protected OperationResult doWrite(ByteBuffer buffer, ConnectivityChanel chanel, Context context) throws IOException {
         if (!headerWrite) {
             doWriteHeader(buffer, chanel, context);
             headerWrite = true;

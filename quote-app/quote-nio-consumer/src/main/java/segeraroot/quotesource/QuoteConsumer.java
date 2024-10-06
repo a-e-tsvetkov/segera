@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.Connection;
 import segeraroot.connectivity.callbacks.ConnectionListener;
 import segeraroot.connectivity.callbacks.WriterCallback;
-import segeraroot.connectivity.callbacks.WritingResult;
+import segeraroot.connectivity.callbacks.OperationResult;
 import segeraroot.performancecounter.PCCounter;
 import segeraroot.performancecounter.PCHost;
 import segeraroot.quotemodel.BuilderFactory;
@@ -42,7 +42,7 @@ public class QuoteConsumer implements ReadersVisitor, WriterCallback<BuilderFact
     }
 
     @Override
-    public WritingResult handleWriting(Connection connection, BuilderFactory builderFactory) {
+    public OperationResult handleWriting(Connection connection, BuilderFactory builderFactory) {
         ConnectionContext context = connection.get();
         if (!context.isSubscribed()) {
             for (String quote : symbols) {
@@ -57,7 +57,7 @@ public class QuoteConsumer implements ReadersVisitor, WriterCallback<BuilderFact
         }
         context.setSubscribed(true);
         //TODO: We are too optimistic here
-        return WritingResult.DONE;
+        return OperationResult.DONE;
     }
 
 

@@ -1,13 +1,17 @@
 package segeraroot.connectivity.http.impl;
 
 import lombok.extern.slf4j.Slf4j;
+import segeraroot.connectivity.callbacks.OperationResult;
 import segeraroot.connectivity.http.EndpointCallback;
+
+import java.nio.ByteBuffer;
 
 @Slf4j
 public class HttpDecoder {
     private final RequestLineDecoder requestLineDecoder = new RequestLineDecoder();
-    private final HeaderDecoder headerParser = new HeaderDecoder();
     private final EndpointCallback endpointCallback;
+
+    private volatile State state = State.HEADER;
     private volatile RequestHandler requestHandler;
 
     public HttpDecoder(EndpointCallback endpointCallback) {
@@ -15,48 +19,39 @@ public class HttpDecoder {
     }
 
     enum State {
-        HEADER, ATTRIBUTES, BODY, DONE
+        HEADER, PROESSING
     }
 
-    private volatile State state = State.HEADER;
-
-    public RequestHandler onMessage(ByteStream byteStream) {
+    public OperationResult onMessage(ByteStream byteStream) {
         switch (state) {
-            case HEADER -> {
-                var result = requestLineDecoder.onMessage(byteStream);
-                if (result) {
-                    log.trace("onMessage: request line done: method = {} url = {}",
-                            requestLineDecoder.getMethod(),
-                            requestLineDecoder.getPath());
-                    state = State.ATTRIBUTES;
+            case HEADER:
+                if (requestLineDecoder.onMessage(byteStream) == OperationResult.CONTINUE) {
+                    return OperationResult.CONTINUE;
                 }
-            }
-            case ATTRIBUTES -> {
-                var result = headerParser.onMessage(byteStream);
-                if (result) {
-                    if (log.isTraceEnabled()) {
-                        log.trace("onMessage: header done");
-                        headerParser.getHeader().forEach((key, value) ->
-                                log.trace("\t{} = {}", key, value));
-                    }
-                    state = State.BODY;
-                    requestHandler = endpointCallback.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
-                    if (requestHandler.onHeader(
-                            requestLineDecoder.getMethod(),
-                            requestLineDecoder.getPath(),
-                            headerParser.getHeader())) {
-                        return requestHandler;
-                    }
+                log.trace("onMessage: request line done: method = {} url = {}",
+                        requestLineDecoder.getMethod(),
+                        requestLineDecoder.getPath());
+                state = State.PROESSING;
+                requestHandler = endpointCallback.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
+                assert requestHandler != null;
+            case PROESSING:
+                if (requestHandler.onMessage(byteStream) == OperationResult.CONTINUE) {
+                    return OperationResult.CONTINUE;
                 }
-            }
-            case BODY -> {
-                var result = requestHandler.onMessage(byteStream);
-                if (result) {
-                    state = State.DONE;
-                    return requestHandler;
-                }
-            }
         }
-        return null;
+        return OperationResult.DONE;
+    }
+
+    public OperationResult onWrite(ByteBuffer buffer) {
+        OperationResult result = requestHandler.onWrite(buffer);
+        if (result == OperationResult.DONE){
+            reset();
+        }
+        return result;
+    }
+
+    private void reset() {
+        requestHandler = null;
+        state = State.HEADER;
     }
 }
