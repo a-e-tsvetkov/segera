@@ -2,20 +2,20 @@ package segeraroot.connectivity.http.impl;
 
 import lombok.extern.slf4j.Slf4j;
 import segeraroot.connectivity.callbacks.OperationResult;
-import segeraroot.connectivity.http.EndpointCallback;
+import segeraroot.connectivity.http.RequestDispatcher;
 
 import java.nio.ByteBuffer;
 
 @Slf4j
 public class HttpDecoder {
     private final RequestLineDecoder requestLineDecoder = new RequestLineDecoder();
-    private final EndpointCallback endpointCallback;
+    private final RequestDispatcher requestDispatcher;
 
     private volatile State state = State.HEADER;
     private volatile RequestHandler requestHandler;
 
-    public HttpDecoder(EndpointCallback endpointCallback) {
-        this.endpointCallback = endpointCallback;
+    public HttpDecoder(RequestDispatcher requestDispatcher) {
+        this.requestDispatcher = requestDispatcher;
     }
 
     enum State {
@@ -32,7 +32,7 @@ public class HttpDecoder {
                         requestLineDecoder.getMethod(),
                         requestLineDecoder.getPath());
                 state = State.PROESSING;
-                requestHandler = endpointCallback.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
+                requestHandler = requestDispatcher.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
                 assert requestHandler != null;
             case PROESSING:
                 if (requestHandler.onMessage(byteStream) == OperationResult.CONTINUE) {

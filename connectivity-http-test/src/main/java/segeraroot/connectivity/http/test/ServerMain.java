@@ -1,30 +1,29 @@
 package segeraroot.connectivity.http.test;
 
-import segeraroot.connectivity.http.EndpointCallbackFactory;
 import segeraroot.connectivity.http.HttpProtocol;
+import segeraroot.connectivity.http.impl.RequestHandlerFactory;
 
 import java.nio.file.Path;
 
 public class ServerMain {
-
-    public static final String CONTENT =
-            """
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>Title</title>
-                    </head>
-                    <body>
-                    Not found
-                    </body>
-                    </html>
-                    """;
-
     public static void main(String[] args) {
-        var root = FileSystemEndpointCallbackFactory.builder()
+        RequestHandlerFactory notFoundPage = StaticContentBuilder.getStaticPage("Error", "Not found");
+        var files = FileSystemRequestDispatcher.builder()
                 .root(Path.of("."))
-                .defaultHandler(()-> EndpointCallbackFactory.staticPage(CONTENT))
+                .defaultHandler(notFoundPage)
+                .build();
+        var root = CompositeRequestDispatcher.builder()
+                .notFoundHandler(notFoundPage)
+                .child(b -> b
+                        .defaultHandler()
+                        .child("files", files)
+                        .child("api", b2 -> b2
+                                .defaultHandler()
+                                .child("foo",
+                                        StaticContentBuilder.getStaticPage("Foo", "placehlder - foo"))
+                                .child("bar",
+                                        StaticContentBuilder.getStaticPage("Bar", "placehlder - bar")))
+                        .build())
                 .build();
         HttpProtocol
                 .server(root)

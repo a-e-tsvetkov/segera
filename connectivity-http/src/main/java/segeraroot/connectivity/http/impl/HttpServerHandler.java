@@ -7,7 +7,7 @@ import segeraroot.connectivity.callbacks.ConnectionListener;
 import segeraroot.connectivity.callbacks.ConnectivityChanel;
 import segeraroot.connectivity.callbacks.ConnectivityHandler;
 import segeraroot.connectivity.callbacks.OperationResult;
-import segeraroot.connectivity.http.EndpointCallback;
+import segeraroot.connectivity.http.RequestDispatcher;
 import segeraroot.connectivity.impl.ConnectionListenerWrapper;
 import segeraroot.connectivity.impl.ContextWrapper;
 
@@ -21,13 +21,13 @@ public class HttpServerHandler implements ConnectivityHandler {
     @Delegate(types = ConnectionListener.class)
     private final ConnectionListenerWrapper<Context> connectionListener;
 
-    public HttpServerHandler(EndpointCallback endpointCallback) {
+    public HttpServerHandler(RequestDispatcher requestDispatcher) {
         byteStream = new ByteStream(CAPACITY);
         connectionListener = new ConnectionListenerWrapper<>(
                 ConnectionListener.NOOP,
                 wrapper -> new Context(
                         wrapper,
-                        new HttpDecoder(endpointCallback))
+                        new HttpDecoder(requestDispatcher))
         );
     }
 
