@@ -37,6 +37,7 @@ public abstract class ConnectionHandlerBase {
         }
     }
 
+    @SuppressWarnings("EmptyMethod")
     protected abstract void handleCloseConnection();
 
     public final void write(MessageWrapper messageWrapper) {

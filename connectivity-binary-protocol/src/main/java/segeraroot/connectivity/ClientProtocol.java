@@ -15,12 +15,12 @@ public class ClientProtocol {
             ConnectionListener connectionListener,
             WriterCallback<BF> writerCallback,
             Supplier<BF> builderFactorySupplier,
-            Supplier<ReaderCallback> messageDeserializeraFactory) {
+            Supplier<ReaderCallback> readerCallbackSupplier) {
         return new BaseProtocol<>(
                 connectionListener,
                 writerCallback,
                 builderFactorySupplier,
-                messageDeserializeraFactory
+                readerCallbackSupplier
         );
     }
 }

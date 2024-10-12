@@ -33,7 +33,7 @@ public class HttpServerHandler implements ConnectivityHandler {
 
     @Override
     public final void read(ConnectivityChanel channel, Connection connection) throws IOException {
-        Context context = connectionListener.unwrap(connection);
+        Context context = connection.get();
         byteStream.readFrom(channel);
         doRead(byteStream, context);
     }
@@ -47,7 +47,7 @@ public class HttpServerHandler implements ConnectivityHandler {
 
     @Override
     public final OperationResult write(ConnectivityChanel chanel, Connection connection) throws IOException {
-        Context context = connectionListener.unwrap(connection);
+        Context context = connection.get();
         ByteBuffer buffer = byteStream.byteBuffer();
         buffer.position(0);
         buffer.limit(buffer.capacity());

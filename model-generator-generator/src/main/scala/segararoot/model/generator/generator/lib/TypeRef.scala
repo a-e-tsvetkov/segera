@@ -22,11 +22,11 @@ sealed trait JavaType {
 
 sealed trait TypeRef extends NamespaceRef with JavaType {
   def addGenericParams(str: String): TypeRef = {
-    GenercType(this, Seq(str))
+    GenericType(this, Seq(str))
   }
 
   def addGenericParams(str: TypeRef): TypeRef = {
-    GenercType(this, Seq(str.toJavaCode))
+    GenericType(this, Seq(str.toJavaCode))
   }
 }
 
@@ -75,7 +75,7 @@ case class ReferenceType(fullName: String) extends TypeRef {
   override def subType(name: String): ReferenceType = ReferenceType(fullName + "." + name)
 }
 
-case class GenercType(base: TypeRef, params: Seq[String]) extends TypeRef {
+case class GenericType(base: TypeRef, params: Seq[String]) extends TypeRef {
   override def toJavaCode: String = base.toJavaCode + "<" + params.mkString(", ") + ">"
 
   override def subNamespace(name: String): PackageRef = ???

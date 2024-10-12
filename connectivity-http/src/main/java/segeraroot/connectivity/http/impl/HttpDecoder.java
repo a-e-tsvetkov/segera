@@ -19,7 +19,7 @@ public class HttpDecoder {
     }
 
     enum State {
-        HEADER, PROESSING
+        HEADER, PROCESSING
     }
 
     public OperationResult onMessage(ByteStream byteStream) {
@@ -31,10 +31,10 @@ public class HttpDecoder {
                 log.trace("onMessage: request line done: method = {} url = {}",
                         requestLineDecoder.getMethod(),
                         requestLineDecoder.getPath());
-                state = State.PROESSING;
+                state = State.PROCESSING;
                 requestHandler = requestDispatcher.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
                 assert requestHandler != null;
-            case PROESSING:
+            case PROCESSING:
                 if (requestHandler.onMessage(byteStream) == OperationResult.CONTINUE) {
                     return OperationResult.CONTINUE;
                 }

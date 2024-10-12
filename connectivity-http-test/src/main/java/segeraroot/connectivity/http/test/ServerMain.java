@@ -20,9 +20,9 @@ public class ServerMain {
                         .child("api", b2 -> b2
                                 .defaultHandler()
                                 .child("foo",
-                                        StaticContentBuilder.getStaticPage("Foo", "placehlder - foo"))
+                                        StaticContentBuilder.getStaticPage("Foo", "placeholder - foo"))
                                 .child("bar",
-                                        StaticContentBuilder.getStaticPage("Bar", "placehlder - bar")))
+                                        StaticContentBuilder.getStaticPage("Bar", "placeholder - bar")))
                         .build())
                 .build();
         HttpProtocol

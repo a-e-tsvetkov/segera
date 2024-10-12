@@ -2,6 +2,6 @@ package segeraroot.connectivity.callbacks;
 
 public interface ByteBufferFactory {
 
-    boolean write(WriteCallback calback);
+    boolean write(WriteCallback callback);
 
 }

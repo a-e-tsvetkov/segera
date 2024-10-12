@@ -6,11 +6,12 @@ import segeraroot.connectivity.Connection;
 
 
 @RequiredArgsConstructor
-public class ContextedConnectionWrapper extends ConnectionBase {
+public class ConnectionDelegate extends ConnectionWithContext {
     @Delegate
     private final Connection connection;
 
     //Do not delegate this
+    @SuppressWarnings("EmptyMethod")
     @Override
     public <C> C get() {
         return super.get();

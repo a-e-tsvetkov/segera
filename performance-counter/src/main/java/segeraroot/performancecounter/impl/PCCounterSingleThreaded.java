@@ -1,10 +1,12 @@
 package segeraroot.performancecounter.impl;
 
+import lombok.Getter;
 import segeraroot.performancecounter.Aggregator;
 
 
 public class PCCounterSingleThreaded {
     private final Aggregator aggregator;
+    @Getter
     private final Thread thread;
 
     public PCCounterSingleThreaded(Thread thread, Aggregator aggregator) {
@@ -14,10 +16,6 @@ public class PCCounterSingleThreaded {
 
     public void add(int count) {
         aggregator.add(count);
-    }
-
-    public Thread getThread() {
-        return thread;
     }
 
     public void dump(Aggregator aggregatorsCache) {

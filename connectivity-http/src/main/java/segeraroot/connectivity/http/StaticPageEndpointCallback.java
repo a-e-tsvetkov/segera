@@ -68,6 +68,7 @@ public class StaticPageEndpointCallback implements RequestHandler {
 
     }
 
+    @SuppressWarnings("LoggingSimilarMessage")
     @Override
     public OperationResult onWrite(ByteBuffer buffer) {
         log.trace("onWrite: state = {}", state);

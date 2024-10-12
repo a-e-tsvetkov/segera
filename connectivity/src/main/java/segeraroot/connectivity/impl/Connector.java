@@ -98,7 +98,7 @@ public abstract class Connector {
         connection.setContext(context);
     }
 
-    private class ConnectionHandler extends ConnectionBase implements ConnectivityChanel {
+    private class ConnectionHandler extends ConnectionWithContext implements ConnectivityChanel {
 
         private final SelectionKey key;
         private final SocketChannel channel;

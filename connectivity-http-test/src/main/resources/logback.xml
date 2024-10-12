@@ -11,6 +11,6 @@
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
-    <logger name="segeraroot" level="TRACE"/>
+    <logger name="segeraroot" level="INFO"/>
 
 </configuration>

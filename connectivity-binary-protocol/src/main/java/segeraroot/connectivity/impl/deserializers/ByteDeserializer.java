@@ -16,6 +16,7 @@ public class ByteDeserializer {
         return false;
     }
 
+    @SuppressWarnings({"unused", "EmptyMethod"})
     public void reset() {
     }
 }

@@ -24,9 +24,9 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         outer:
         for (int i = 0; i < path.nameCount(); i++) {
             String name = path.name(i);
-            List<ChildDescr> list = current.list;
+            List<ChildDescriptor> list = current.list;
             for (int j = 0, listSize = list.size(); j < listSize; j++) {
-                ChildDescr l = list.get(j);
+                ChildDescriptor l = list.get(j);
                 if (l.name.equals(name)) {
                     if (l.value instanceof Composite subComposite) {
                         current = subComposite;
@@ -83,21 +83,21 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         }
 
         public CompositeBuilder child(String name, RequestDispatcher requestDispatcher) {
-            composite.addChild(new ChildDescr(name, requestDispatcher));
+            composite.addChild(new ChildDescriptor(name, requestDispatcher));
             return this;
         }
 
         public CompositeBuilder child(String name, Consumer<CompositeBuilder> builderConsumer) {
             CompositeBuilder builder = new CompositeBuilder();
             builderConsumer.accept(builder);
-            composite.addChild(new ChildDescr(name, builder.build()));
+            composite.addChild(new ChildDescriptor(name, builder.build()));
             return this;
         }
 
         public CompositeBuilder child(String name, RequestHandlerFactory page) {
             CompositeBuilder builder = new CompositeBuilder();
             builder.handler(page);
-            composite.addChild(new ChildDescr(name, builder.build()));
+            composite.addChild(new ChildDescriptor(name, builder.build()));
             return this;
         }
 
@@ -107,7 +107,7 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         }
     }
 
-    private record ChildDescr(String name, Object value) {
+    private record ChildDescriptor(String name, Object value) {
     }
 
     @RequiredArgsConstructor
@@ -126,14 +126,14 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
 
     private static class Composite {
         private RequestHandlerFactory requestHandlerFactory;
-        private final List<ChildDescr> list = new ArrayList<>();
+        private final List<ChildDescriptor> list = new ArrayList<>();
 
         public void setContent(RequestHandlerFactory requestHandlerFactory) {
             this.requestHandlerFactory = requestHandlerFactory;
         }
 
-        public void addChild(ChildDescr childDescr) {
-            list.add(childDescr);
+        public void addChild(ChildDescriptor childDescriptor) {
+            list.add(childDescriptor);
         }
     }
 }

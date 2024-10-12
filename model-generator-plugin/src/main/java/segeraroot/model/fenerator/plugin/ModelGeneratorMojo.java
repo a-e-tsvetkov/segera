@@ -28,7 +28,7 @@ public class ModelGeneratorMojo extends AbstractMojo {
 
     @Parameter(property = "generateDto", defaultValue = "true")
     boolean generateDto;
-    @Parameter(property = "generateFliweightInterface", defaultValue = "true")
+    @Parameter(property = "generateFlyweightInterface", defaultValue = "true")
     boolean generateFlyweightInterface;
     @Parameter(property = "packageName", required = true)
     String packageName;
@@ -60,16 +60,6 @@ public class ModelGeneratorMojo extends AbstractMojo {
         for (CompilationUnit allUnit : allUnits) {
             save(allUnit);
         }
-
-/*
-        Dependency connectivity = new Dependency();
-        connectivity.setGroupId("segera");
-        connectivity.setArtifactId("connectivity");
-        connectivity.setVersion(connectivityVersion);
-        connectivity.setScope("compile");
-        //noinspection unchecked
-        project.getDependencies().add(connectivity);
-*/
 
         project.addCompileSourceRoot(outputFolder.getPath());
     }

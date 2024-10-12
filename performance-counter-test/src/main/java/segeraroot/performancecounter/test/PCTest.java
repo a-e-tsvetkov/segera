@@ -40,8 +40,7 @@ public class PCTest {
     private static void sleep(int millis) {
         try {
             Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        } catch (InterruptedException ignored) {
         }
     }
 

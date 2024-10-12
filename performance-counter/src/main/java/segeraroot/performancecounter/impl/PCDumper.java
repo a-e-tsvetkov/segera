@@ -11,11 +11,11 @@ import java.util.concurrent.TimeUnit;
 public class PCDumper {
     private final PCHostImpl host;
     private final PCSink sink;
-    private long periodSeconds = 10;
+    private static final long PERIOD_SECONDS = 10;
 
     public void start() {
         ScheduledExecutorService threadPool = Executors.newScheduledThreadPool(1);
-        threadPool.scheduleAtFixedRate(this::run, 0, periodSeconds, TimeUnit.SECONDS);
+        threadPool.scheduleAtFixedRate(this::run, 0, PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 
     private void run() {

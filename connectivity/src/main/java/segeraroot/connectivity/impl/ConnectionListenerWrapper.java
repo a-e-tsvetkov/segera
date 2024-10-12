@@ -13,19 +13,15 @@ public class ConnectionListenerWrapper<C extends ContextWrapper> implements Conn
 
     @Override
     public void handleCloseConnection(Connection connection) {
-        ContextWrapper context = unwrap(connection);
+        ContextWrapper context = connection.get();
         connectionListener.handleCloseConnection(context.getInnerConnection());
     }
 
     @Override
     public C handleNewConnection(Connection connection) {
-        ContextedConnectionWrapper wrapper = new ContextedConnectionWrapper(connection);
+        ConnectionDelegate wrapper = new ConnectionDelegate(connection);
         Object innerContext = connectionListener.handleNewConnection(wrapper);
         wrapper.setContext(innerContext);
         return contextFactory.apply(wrapper);
-    }
-
-    public C unwrap(Connection connection) {
-        return connection.get();
     }
 }

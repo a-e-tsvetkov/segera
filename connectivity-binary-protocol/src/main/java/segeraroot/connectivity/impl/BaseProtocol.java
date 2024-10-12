@@ -19,14 +19,14 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
             ConnectionListener connectionListener,
             WriterCallback<BF> writerCallback,
             Supplier<BF> builderFactorySupplier,
-            Supplier<ReaderCallback> messageDeserializeraFactory) {
+            Supplier<ReaderCallback> readerCallbackSupplier) {
         this.writerCallback = writerCallback;
         this.connectionListener = new ConnectionListenerWrapper<>(
                 connectionListener,
                 wrapper -> new Context<>(
                         wrapper,
                         builderFactorySupplier.get(),
-                        messageDeserializeraFactory.get())
+                        readerCallbackSupplier.get())
         );
     }
 
@@ -46,12 +46,12 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
     }
 
     private void handleReading(Connection connection, ByteBuffer buffer) {
-        Context<BF> context = connectionListener.unwrap(connection);
+        Context<BF> context = connection.get();
         context.readerCallback.onMessage(context.getInnerConnection(), buffer);
     }
 
     private OperationResult handleWriting(Connection connection, ByteBufferFactory byteBufferFactory) {
-        Context<BF> context = connectionListener.unwrap(connection);
+        Context<BF> context = connection.get();
 
         BF builderFactory = context.getBuilderFactory();
         builderFactory.set(byteBufferFactory);

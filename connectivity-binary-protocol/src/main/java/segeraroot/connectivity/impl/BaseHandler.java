@@ -27,7 +27,7 @@ public abstract class BaseHandler implements ConnectivityHandler {
 
     @Override
     public final void read(ConnectivityChanel channel, Connection connection) throws IOException {
-        Context context = connectionListener.unwrap(connection);
+        Context context = connection.get();
         buffer.position(0);
         buffer.limit(buffer.capacity());
         channel.read(buffer);
@@ -43,7 +43,7 @@ public abstract class BaseHandler implements ConnectivityHandler {
 
     @Override
     public final OperationResult write(ConnectivityChanel chanel, Connection connection) throws IOException {
-        Context context = connectionListener.unwrap(connection);
+        Context context = connection.get();
         return doWrite(buffer, chanel, context);
     }
 
@@ -60,8 +60,8 @@ public abstract class BaseHandler implements ConnectivityHandler {
     private class ByteBufferFactoryImpl implements ByteBufferFactory {
 
         @Override
-        public boolean write(WriteCallback calback) {
-            return calback.tryWrite(buffer);
+        public boolean write(WriteCallback callback) {
+            return callback.tryWrite(buffer);
         }
     }
 
