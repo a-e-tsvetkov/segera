@@ -34,6 +34,7 @@ case class InterfaceBodyBuilder(private val builder: StringBuilder, container: T
 
   override val b: StringBuilder = builder
 }
+
 case class EnumBodyBuilder(private val builder: StringBuilder, container: TypeRef, className: String) extends TypeBodyBuilder with ParentContainer {
   override val b: StringBuilder = builder
 
@@ -44,10 +45,11 @@ case class EnumBodyBuilder(private val builder: StringBuilder, container: TypeRe
 
 case class ClassBodyBuilder(private val builder: StringBuilder, container: TypeRef, className: String) extends TypeBodyBuilder with ParentContainer {
   def thisTypeRef: TypeRef = container
+
   override def appendStatic(b: StringBuilder, isStatic: Boolean): Unit = {
-     if (isStatic){
-       b.append("static ")
-     }
+    if (isStatic) {
+      b.append("static ")
+    }
   }
 
   def appendField(name: String,
@@ -56,7 +58,7 @@ case class ClassBodyBuilder(private val builder: StringBuilder, container: TypeR
                   isFinal: Boolean = false
                  ): Unit = {
     appendVisibility(visibility)
-    if (isFinal ){
+    if (isFinal) {
       b.append("final ")
     }
     b.append(typeRef.toJavaCode).append(" ").append(name).append(";\n")
@@ -80,14 +82,14 @@ case class ClassBodyBuilder(private val builder: StringBuilder, container: TypeR
   def appendMethod(name: String,
                    typeRef: JavaType,
                    visibility: VisibilityModifier = VisibilityPrivate,
-                   isStatic:Boolean = false
+                   isStatic: Boolean = false
                   )(
                     params: ParamsBuilder => Unit
                   )(
                     body: BodyBuilder => Unit
                   ): Unit = {
     appendVisibility(visibility)
-    if( isStatic) {
+    if (isStatic) {
       b.append("static ")
     }
     b.append(typeRef.toJavaCode).append(" ").append(name)
@@ -107,7 +109,7 @@ case class ClassBodyBuilder(private val builder: StringBuilder, container: TypeR
                   body: BodyBuilder => Unit
                 ): Unit = {
     appendVisibility(visibility)
-    b/*.append(typeRef.toJavaCode).append(" ")*/.append(className)
+    b /*.append(typeRef.toJavaCode).append(" ")*/.append(className)
     b.append("(")
     params(ParamsBuilder(b))
     b.append(")")

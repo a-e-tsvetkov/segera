@@ -12,15 +12,15 @@ import java.util.function.Supplier;
 @UtilityClass
 public class ClientProtocol {
     public static <BF extends ByteBufferHolder> ProtocolInterface of(
-            ConnectionListener connectionListener,
-            WriterCallback<BF> writerCallback,
-            Supplier<BF> builderFactorySupplier,
-            Supplier<ReaderCallback> readerCallbackSupplier) {
+        ConnectionListener connectionListener,
+        WriterCallback<BF> writerCallback,
+        Supplier<BF> builderFactorySupplier,
+        Supplier<ReaderCallback> readerCallbackSupplier) {
         return new BaseProtocol<>(
-                connectionListener,
-                writerCallback,
-                builderFactorySupplier,
-                readerCallbackSupplier
+            connectionListener,
+            writerCallback,
+            builderFactorySupplier,
+            readerCallbackSupplier
         );
     }
 }

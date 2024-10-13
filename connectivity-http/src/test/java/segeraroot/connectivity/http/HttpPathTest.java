@@ -19,7 +19,7 @@ class HttpPathTest {
     @Test
     void rest() {
         HttpPath parsed = HttpPath.parse("foo/bar/baz")
-                .rest(0);
+            .rest(0);
         assertThat(parsed.nameCount()).isEqualTo(2);
         assertThat(parsed.name(0)).isEqualTo("bar");
         assertThat(parsed.name(1)).isEqualTo("baz");

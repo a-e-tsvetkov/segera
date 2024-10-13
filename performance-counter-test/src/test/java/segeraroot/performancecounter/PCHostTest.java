@@ -31,10 +31,10 @@ public class PCHostTest {
         host.dump(updateMap(map));
 
         assertThat(map)
-                .contains(
-                        entry(counterName + ":SUM", 6L),
-                        entry(counterName + ":COUNT", 3L)
-                ).size().isEqualTo(2);
+            .contains(
+                entry(counterName + ":SUM", 6L),
+                entry(counterName + ":COUNT", 3L)
+            ).size().isEqualTo(2);
     }
 
     @SneakyThrows
@@ -71,10 +71,10 @@ public class PCHostTest {
         long expectedCount = addCount * threadNumber;
         long expectedSumm = (addCount * (addCount - 1) / 2) * threadNumber;
         assertThat(map)
-                .contains(
-                        entry(counterName + ":SUM", expectedSumm),
-                        entry(counterName + ":COUNT", expectedCount)
-                );
+            .contains(
+                entry(counterName + ":SUM", expectedSumm),
+                entry(counterName + ":COUNT", expectedCount)
+            );
     }
 
     private static BiConsumer<String, Aggregator> updateMap(HashMap<String, Long> map) {

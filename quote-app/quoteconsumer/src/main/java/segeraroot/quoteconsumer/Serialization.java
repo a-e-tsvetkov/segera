@@ -49,9 +49,9 @@ public class Serialization {
             case QUOTE -> readQuote(stream);
         };
         return MessageWrapper.builder()
-                .type(messageType)
-                .value(value)
-                .build();
+            .type(messageType)
+            .value(value)
+            .build();
     }
 
     private void writeSubscribe(Subscribe subscribe, DataOutputStream stream) throws IOException {
@@ -61,8 +61,8 @@ public class Serialization {
     private Subscribe readSubscribe(DataInputStream stream) throws IOException {
         String symbol = readSymbol(stream);
         return Subscribe.builder()
-                .symbol(symbol)
-                .build();
+            .symbol(symbol)
+            .build();
     }
 
     private void writeUnsubscribe(Unsubscribe unsubscribe, DataOutputStream stream) throws IOException {
@@ -72,8 +72,8 @@ public class Serialization {
     private Unsubscribe readUnsubscribe(DataInputStream stream) throws IOException {
         String symbol = readSymbol(stream);
         return Unsubscribe.builder()
-                .symbol(symbol)
-                .build();
+            .symbol(symbol)
+            .build();
     }
 
 
@@ -95,11 +95,11 @@ public class Serialization {
         long price = stream.readLong();
         long time = stream.readLong();
         return Quote.builder()
-                .date(Instant.ofEpochMilli(time))
-                .symbol(symbol)
-                .volume(volume)
-                .price(price)
-                .build();
+            .date(Instant.ofEpochMilli(time))
+            .symbol(symbol)
+            .volume(volume)
+            .price(price)
+            .build();
     }
 
     private String readSymbol(DataInputStream stream) throws IOException {

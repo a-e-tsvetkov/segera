@@ -15,18 +15,17 @@ public class BaseProtocol<BF extends ByteBufferHolder> implements ProtocolInterf
     private final ReaderCallbackImpl readerCallbackImpl = new ReaderCallbackImpl();
     private final WriterCallbackImpl writerCallbackImpl = new WriterCallbackImpl();
 
-    public BaseProtocol(
-            ConnectionListener connectionListener,
-            WriterCallback<BF> writerCallback,
-            Supplier<BF> builderFactorySupplier,
-            Supplier<ReaderCallback> readerCallbackSupplier) {
+    public BaseProtocol(ConnectionListener connectionListener,
+                        WriterCallback<BF> writerCallback,
+                        Supplier<BF> builderFactorySupplier,
+                        Supplier<ReaderCallback> readerCallbackSupplier) {
         this.writerCallback = writerCallback;
         this.connectionListener = new ConnectionListenerWrapper<>(
-                connectionListener,
-                wrapper -> new Context<>(
-                        wrapper,
-                        builderFactorySupplier.get(),
-                        readerCallbackSupplier.get())
+            connectionListener,
+            wrapper -> new Context<>(
+                wrapper,
+                builderFactorySupplier.get(),
+                readerCallbackSupplier.get())
         );
     }
 

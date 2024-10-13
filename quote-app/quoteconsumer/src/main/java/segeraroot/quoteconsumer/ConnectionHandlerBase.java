@@ -85,8 +85,8 @@ public abstract class ConnectionHandlerBase {
             stop();
         } catch (QuoteProtocolWrongVersionException e) {
             log.error("Unexpected header version: expected={} actual={}",
-                    e.getExpectedVersion(),
-                    e.getActualVersion());
+                e.getExpectedVersion(),
+                e.getActualVersion());
             stop();
             throw new RuntimeException(e);
         }

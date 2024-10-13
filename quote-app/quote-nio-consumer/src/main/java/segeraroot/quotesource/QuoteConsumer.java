@@ -48,8 +48,8 @@ public class QuoteConsumer implements ReadersVisitor, WriterCallback<BuilderFact
             for (String quote : symbols) {
                 log.debug("Subscribing to {}", quote);
                 boolean success = builderFactory.createSubscribe()
-                        .symbol(QuoteSupport.convert(quote))
-                        .send();
+                    .symbol(QuoteSupport.convert(quote))
+                    .send();
                 if (!success) {
                     log.error("Failed to subscribe to {}", quote);
                 }
@@ -65,10 +65,10 @@ public class QuoteConsumer implements ReadersVisitor, WriterCallback<BuilderFact
     public void visit(Connection connection, QuoteReader value) {
         quoteCount.add(1);
         log.info("Quote received: symbol={}, volume={}, price={}, date={}",
-                QuoteSupport.convert(value.symbol()),
-                value.volume(),
-                value.price(),
-                Instant.ofEpochMilli(value.date())
+            QuoteSupport.convert(value.symbol()),
+            value.volume(),
+            value.price(),
+            Instant.ofEpochMilli(value.date())
 
         );
     }

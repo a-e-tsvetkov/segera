@@ -29,8 +29,8 @@ public class HttpDecoder {
                     return OperationResult.CONTINUE;
                 }
                 log.trace("onMessage: request line done: method = {} url = {}",
-                        requestLineDecoder.getMethod(),
-                        requestLineDecoder.getPath());
+                    requestLineDecoder.getMethod(),
+                    requestLineDecoder.getPath());
                 state = State.PROCESSING;
                 requestHandler = requestDispatcher.route(requestLineDecoder.getMethod(), requestLineDecoder.getPath());
                 assert requestHandler != null;
@@ -44,7 +44,7 @@ public class HttpDecoder {
 
     public OperationResult onWrite(ByteBuffer buffer) {
         OperationResult result = requestHandler.onWrite(buffer);
-        if (result == OperationResult.DONE){
+        if (result == OperationResult.DONE) {
             reset();
         }
         return result;

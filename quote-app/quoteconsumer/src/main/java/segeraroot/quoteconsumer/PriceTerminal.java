@@ -42,11 +42,11 @@ public class PriceTerminal {
 
     public QuoteConnectionCallback<MessageWrapper> getCallback() {
         return SimpleQuoteConnectionCallback.<MessageWrapper>builder()
-                .newHandler(this::onNewConnection)
-                .closeHandler(connection -> {
-                })
-                .messageHandler(this::acceptMessage)
-                .build();
+            .newHandler(this::onNewConnection)
+            .closeHandler(connection -> {
+            })
+            .messageHandler(this::acceptMessage)
+            .build();
     }
 
     private void onNewConnection(QuoteConnection<MessageWrapper> quoteConnection) {
@@ -58,10 +58,10 @@ public class PriceTerminal {
     private void subscribe(QuoteConnection<MessageWrapper> quoteConnection, String symbol) {
         log.debug("subscribe: {} {}", quoteConnection.getName(), symbol);
         quoteConnection.write(MessageWrapper.builder()
-                .type(MessageType.SUBSCRIBE)
-                .value(Subscribe.builder()
-                        .symbol(symbol)
-                        .build())
-                .build());
+            .type(MessageType.SUBSCRIBE)
+            .value(Subscribe.builder()
+                .symbol(symbol)
+                .build())
+            .build());
     }
 }

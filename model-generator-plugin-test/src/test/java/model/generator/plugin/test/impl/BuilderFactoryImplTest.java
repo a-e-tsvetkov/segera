@@ -32,18 +32,18 @@ class BuilderFactoryImplTest {
             return write(callback, buffer);
         });
         boolean result = builderFactory.createTestMessage()
-                .field1(0x7777777777777777L)
-                .field2(2)
-                .field3(testArray)
-                .send();
+            .field1(0x7777777777777777L)
+            .field2(2)
+            .field3(testArray)
+            .send();
 
         assertThat(buffer.array()).asHexString()
-                .isEqualTo(
-                        "00" +
-                                "7777777777777777" +
-                                "00000002" +
-                                "010203040506"
-                );
+            .isEqualTo(
+                "00" +
+                    "7777777777777777" +
+                    "00000002" +
+                    "010203040506"
+            );
 
         assertThat(result).isTrue();
     }

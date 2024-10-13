@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.LinkedBlockingQueue;
 
 @Slf4j
-public class QuoteDispatcher implements ConnectionListener, ReadersVisitor , WriterCallback<BuilderFactory> {
+public class QuoteDispatcher implements ConnectionListener, ReadersVisitor, WriterCallback<BuilderFactory> {
     private final List<Connection> connections = new ArrayList<>();
     private final Object connectionListLock = new Object();
 
@@ -61,12 +61,12 @@ public class QuoteDispatcher implements ConnectionListener, ReadersVisitor , Wri
         Quote quote;
         while ((quote = context.peek()) != null) {
             boolean success = builderFactory.createQuote()
-                    .symbol(quote.symbol())
-                    .price(quote.price())
-                    .volume(quote.volume())
-                    .date(quote.date())
-                    //TODO: Ensure buffer have enough space
-                    .send();
+                .symbol(quote.symbol())
+                .price(quote.price())
+                .volume(quote.volume())
+                .date(quote.date())
+                //TODO: Ensure buffer have enough space
+                .send();
 
             if (success) {
                 context.poll();

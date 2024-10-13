@@ -13,17 +13,17 @@ import segeraroot.quotemodel.impl.MessageDeserializerImpl;
 public class Protocol {
 
     public static ServerBuilder server(
-            ReadersVisitor readerCallback,
-            ConnectionListener connectionListener,
-            WriterCallback<BuilderFactory> writerCallback
+        ReadersVisitor readerCallback,
+        ConnectionListener connectionListener,
+        WriterCallback<BuilderFactory> writerCallback
     ) {
         return new ServerBuilder(readerCallback, connectionListener, writerCallback);
     }
 
     public static ClientBuilder client(
-            ReadersVisitor readerCallback,
-            ConnectionListener connectionListener,
-            WriterCallback<BuilderFactory> writerCallback
+        ReadersVisitor readerCallback,
+        ConnectionListener connectionListener,
+        WriterCallback<BuilderFactory> writerCallback
     ) {
         return new ClientBuilder(readerCallback, connectionListener, writerCallback);
     }
@@ -36,10 +36,10 @@ public class Protocol {
 
         public Server at(int port) {
             var protocol = ServerProtocol.of(
-                    connectionListener,
-                    adapt(writerCallback),
-                    BuilderFactoryImpl::new,
-                    () -> new MessageDeserializerImpl(readerCallback));
+                connectionListener,
+                adapt(writerCallback),
+                BuilderFactoryImpl::new,
+                () -> new MessageDeserializerImpl(readerCallback));
             return new Server(port, new ServerHandler(protocol));
         }
     }
@@ -52,10 +52,10 @@ public class Protocol {
 
         public Client connectTo(String host, int port) {
             var clientProtocol = ClientProtocol.of(
-                    connectionListener,
-                    adapt(writerCallback),
-                    BuilderFactoryImpl::new,
-                    () -> new MessageDeserializerImpl(readerCallback));
+                connectionListener,
+                adapt(writerCallback),
+                BuilderFactoryImpl::new,
+                () -> new MessageDeserializerImpl(readerCallback));
             return new Client(host, port, new ClientHandler(clientProtocol));
         }
     }

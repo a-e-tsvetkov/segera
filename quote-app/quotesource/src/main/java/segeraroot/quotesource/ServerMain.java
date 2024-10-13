@@ -10,17 +10,17 @@ public class ServerMain {
 
         for (String symbol : Arrays.asList("ABC", "DEF", "GHK")) {
             var quoteGenerator = new QuoteGenerator(
-                    symbol,
-                    quoteDispatcher::acceptQuote,
-                    Thread::new);
+                symbol,
+                quoteDispatcher::acceptQuote,
+                Thread::new);
             quoteGenerator.start();
         }
 
         var server = Protocol.server(
-                        quoteDispatcher,
-                        quoteDispatcher,
-                        quoteDispatcher
-                ).at(9000);
+            quoteDispatcher,
+            quoteDispatcher,
+            quoteDispatcher
+        ).at(9000);
 
         server.start();
 

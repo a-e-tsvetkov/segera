@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @Builder
-public class FileSystemRequest{
+public class FileSystemRequest {
     private final Path fileRoot;
     private final RequestHandlerFactory defaultHandler;
 
@@ -39,30 +39,30 @@ public class FileSystemRequest{
     }
 
     private RequestHandler directoryContent(Path current, HttpPath httpRoot) {
-        try (Stream<Path> list = Files.list(current)){
+        try (Stream<Path> list = Files.list(current)) {
             return StaticContentBuilder.list(
-                    "Content: " + current,
-                    list
-                            .sorted()
-                            .map(p -> Map.entry(
-                                    httpRoot.fullName() + "/" + fileRoot.toAbsolutePath().relativize(p),
-                                    p.getFileName().toString())));
+                "Content: " + current,
+                list
+                    .sorted()
+                    .map(p -> Map.entry(
+                        httpRoot.fullName() + "/" + fileRoot.toAbsolutePath().relativize(p),
+                        p.getFileName().toString())));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static final String CONTENT = """
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <title>Title</title>
-            </head>
-            <body>
-            File: %s
-            </body>
-            </html>
-            """;
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <title>Title</title>
+        </head>
+        <body>
+        File: %s
+        </body>
+        </html>
+        """;
 }
 

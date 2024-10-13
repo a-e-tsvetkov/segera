@@ -19,8 +19,8 @@ public abstract class BaseHandler implements ConnectivityHandler {
     protected BaseHandler(ProtocolInterface protocol) {
         this.protocol = protocol;
         connectionListener = new ConnectionListenerWrapper<>(
-                protocol.connectionListener(),
-                Context::new
+            protocol.connectionListener(),
+            Context::new
         );
 
     }
@@ -51,7 +51,7 @@ public abstract class BaseHandler implements ConnectivityHandler {
         buffer.position(0);
         buffer.limit(buffer.capacity());
         OperationResult result = protocol.writerCallback()
-                .handleWriting(context.getInnerConnection(), byteBufferFactory);
+            .handleWriting(context.getInnerConnection(), byteBufferFactory);
         buffer.flip();
         chanel.write(buffer);
         return result;

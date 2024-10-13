@@ -16,8 +16,8 @@ public class ClientHandler extends BaseHandler {
         super(protocol);
     }
 
- @Override
- protected void doRead(ByteBuffer buffer, ConnectivityChanel channel, Context context) {
+    @Override
+    protected void doRead(ByteBuffer buffer, ConnectivityChanel channel, Context context) {
         if (!isHeaderProcessed) {
             readHeader(buffer, channel);
             isHeaderProcessed = true;

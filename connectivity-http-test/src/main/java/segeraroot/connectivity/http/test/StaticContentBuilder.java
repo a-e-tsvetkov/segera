@@ -13,27 +13,27 @@ public class StaticContentBuilder {
     RequestHandler list(String title, Stream<Map.Entry<String, String>> listElements) {
         StringBuilder sb = new StringBuilder();
         sb.append("""
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                    <title>%s</title>
-                </head>
-                <body>
-                <par>Content:</par>
-                <ul>
-                """.formatted(title));
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <title>%s</title>
+            </head>
+            <body>
+            <par>Content:</par>
+            <ul>
+            """.formatted(title));
         listElements
-                .forEach(p ->
-                        sb.append("<li><a href=\"")
-                                .append(p.getKey())
-                                .append("\">")
-                                .append(p.getValue())
-                                .append("</a></li>"));
+            .forEach(p ->
+                sb.append("<li><a href=\"")
+                    .append(p.getKey())
+                    .append("\">")
+                    .append(p.getValue())
+                    .append("</a></li>"));
         sb.append("""
-                </ul>
-                </body>
-                </html>
-                """);
+            </ul>
+            </body>
+            </html>
+            """);
         String content = sb.toString();
         return EndpointCallbackFactory.staticPage(content).create();
     }
@@ -43,16 +43,16 @@ public class StaticContentBuilder {
     }
 
     private static final String CONTENT =
-            """
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>%s</title>
-                    </head>
-                    <body>
-                    %s
-                    </body>
-                    </html>
-                    """;
+        """
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <title>%s</title>
+            </head>
+            <body>
+            %s
+            </body>
+            </html>
+            """;
 }

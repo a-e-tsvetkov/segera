@@ -24,10 +24,10 @@ public class HttpServerHandler implements ConnectivityHandler {
     public HttpServerHandler(RequestDispatcher requestDispatcher) {
         byteStream = new ByteStream(CAPACITY);
         connectionListener = new ConnectionListenerWrapper<>(
-                ConnectionListener.NOOP,
-                wrapper -> new Context(
-                        wrapper,
-                        new HttpDecoder(requestDispatcher))
+            ConnectionListener.NOOP,
+            wrapper -> new Context(
+                wrapper,
+                new HttpDecoder(requestDispatcher))
         );
     }
 
@@ -65,6 +65,7 @@ public class HttpServerHandler implements ConnectivityHandler {
     @Getter
     private static class Context extends ContextWrapper {
         private final HttpDecoder httpDecoder;
+
         public Context(Connection wrapper, HttpDecoder decoder) {
             super(wrapper);
             this.httpDecoder = decoder;

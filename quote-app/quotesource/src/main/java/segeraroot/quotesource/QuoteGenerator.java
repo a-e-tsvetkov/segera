@@ -31,11 +31,11 @@ public class QuoteGenerator {
         log.info("Start: {}", symbol);
         while (running) {
             Quote quote = Quote.builder()
-                    .date(Instant.now().toEpochMilli())
-                    .symbol(QuoteSupport.convert(symbol))
-                    .volume(100)
-                    .price(6_00100)
-                    .build();
+                .date(Instant.now().toEpochMilli())
+                .symbol(QuoteSupport.convert(symbol))
+                .volume(100)
+                .price(6_00100)
+                .build();
             log.debug("Send quote {}", quote);
             try {
                 quoteConsumer.accept(quote);

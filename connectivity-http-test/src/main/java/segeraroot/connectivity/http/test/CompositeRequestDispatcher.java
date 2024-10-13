@@ -97,7 +97,7 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
 
         public CompositeBuilder customChild(String name, Function<HttpPath, RequestDispatcher> requestDispatcherFactory) {
             RequestDispatcher requestDispatcher = requestDispatcherFactory.apply(
-                    composite.path().append(name)
+                composite.path().append(name)
             );
             composite.addChild(new ChildDescriptor(name, requestDispatcher));
             return this;
@@ -130,11 +130,11 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         @Override
         public RequestHandler create() {
             return StaticContentBuilder.list("Content",
-                    composite.list
-                            .stream()
-                            .map(c -> Map.entry(
-                                    composite.path().append(c.name).fullName(),
-                                    c.name))
+                composite.list
+                    .stream()
+                    .map(c -> Map.entry(
+                        composite.path().append(c.name).fullName(),
+                        c.name))
             );
         }
     }
