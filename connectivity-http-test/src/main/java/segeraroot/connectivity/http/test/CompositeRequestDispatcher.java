@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class CompositeRequestDispatcher implements RequestDispatcher {
@@ -25,6 +26,7 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         for (int i = 0; i < path.nameCount(); i++) {
             String name = path.name(i);
             List<ChildDescriptor> list = current.list;
+            //noinspection ForLoopReplaceableByForEach
             for (int j = 0, listSize = list.size(); j < listSize; j++) {
                 ChildDescriptor l = list.get(j);
                 if (l.name.equals(name)) {
@@ -59,7 +61,7 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         }
 
         public Builder child(Consumer<CompositeBuilder> builderConsumer) {
-            CompositeBuilder builder = new CompositeBuilder();
+            CompositeBuilder builder = new CompositeBuilder(HttpPath.root());
             builderConsumer.accept(builder);
             root = builder.build();
             return this;
@@ -71,7 +73,11 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
     }
 
     public static class CompositeBuilder {
-        private final Composite composite = new Composite();
+        private final Composite composite;
+
+        public CompositeBuilder(HttpPath path) {
+            composite = new Composite(path);
+        }
 
         public CompositeBuilder handler(RequestHandlerFactory requestHandlerFactory) {
             composite.setContent(requestHandlerFactory);
@@ -82,20 +88,23 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
             return handler(new DefaultHandler(composite));
         }
 
-        public CompositeBuilder child(String name, RequestDispatcher requestDispatcher) {
-            composite.addChild(new ChildDescriptor(name, requestDispatcher));
-            return this;
-        }
-
         public CompositeBuilder child(String name, Consumer<CompositeBuilder> builderConsumer) {
-            CompositeBuilder builder = new CompositeBuilder();
+            CompositeBuilder builder = subBuilder(name);
             builderConsumer.accept(builder);
             composite.addChild(new ChildDescriptor(name, builder.build()));
             return this;
         }
 
+        public CompositeBuilder customChild(String name, Function<HttpPath, RequestDispatcher> requestDispatcherFactory) {
+            RequestDispatcher requestDispatcher = requestDispatcherFactory.apply(
+                    composite.path().append(name)
+            );
+            composite.addChild(new ChildDescriptor(name, requestDispatcher));
+            return this;
+        }
+
         public CompositeBuilder child(String name, RequestHandlerFactory page) {
-            CompositeBuilder builder = new CompositeBuilder();
+            CompositeBuilder builder = subBuilder(name);
             builder.handler(page);
             composite.addChild(new ChildDescriptor(name, builder.build()));
             return this;
@@ -104,6 +113,10 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
         @SuppressWarnings("ClassEscapesDefinedScope")
         public Composite build() {
             return composite;
+        }
+
+        private CompositeBuilder subBuilder(String name) {
+            return new CompositeBuilder(composite.path().append(name));
         }
     }
 
@@ -119,12 +132,16 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
             return StaticContentBuilder.list("Content",
                     composite.list
                             .stream()
-                            .map(c -> Map.entry(c.name, c.name))
+                            .map(c -> Map.entry(
+                                    composite.path().append(c.name).fullName(),
+                                    c.name))
             );
         }
     }
 
+    @RequiredArgsConstructor
     private static class Composite {
+        private final HttpPath path;
         private RequestHandlerFactory requestHandlerFactory;
         private final List<ChildDescriptor> list = new ArrayList<>();
 
@@ -134,6 +151,10 @@ public class CompositeRequestDispatcher implements RequestDispatcher {
 
         public void addChild(ChildDescriptor childDescriptor) {
             list.add(childDescriptor);
+        }
+
+        public HttpPath path() {
+            return path;
         }
     }
 }
